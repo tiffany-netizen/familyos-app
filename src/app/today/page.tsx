@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { buildBrief } from "@/lib/brief";
 import MemoryCapture from "@/components/MemoryCapture";
 import SignOutButton from "@/components/SignOutButton";
+import BottomNav from "@/components/BottomNav";
 
 export default async function TodayPage() {
   const supabase = await createClient();
@@ -93,6 +94,7 @@ export default async function TodayPage() {
       <MemoryCapture
         people={(people ?? []).map((p) => ({ id: p.id, name: p.name }))}
       />
+      <BottomNav />
     </main>
   );
 }
