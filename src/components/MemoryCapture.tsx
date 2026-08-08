@@ -1,8 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+type SpeechRecognitionLike = {
+  new (): {
+    lang: string;
+    interimResults: boolean;
+    onresult: (e: { results: { [i: number]: { [j: number]: { transcript: string } } }; resultIndex: number }) => void;
+    onend: () => void;
+    start: () => void;
+    stop: () => void;
+  };
+};
 
 const GIFT_WORDS = ["want", "wants", "wanted", "misses", "miss", "loves", "mentioned", "wish", "likes", "saved"];
 
@@ -16,6 +27,45 @@ export default function MemoryCapture({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const [micAvailable, setMicAvailable] = useState(false);
+  const recRef = useRef<InstanceType<SpeechRecognitionLike> | null>(null);
+
+  useEffect(() => {
+    const openHandler = () => setOpen(true);
+    window.addEventListener("open-memory", openHandler);
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionLike;
+      webkitSpeechRecognition?: SpeechRecognitionLike;
+    };
+    setMicAvailable(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    return () => window.removeEventListener("open-memory", openHandler);
+  }, []);
+
+  function toggleMic() {
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionLike;
+      webkitSpeechRecognition?: SpeechRecognitionLike;
+    };
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      recRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const t = e.results[e.resultIndex]?.[0]?.transcript ?? "";
+      setText((prev) => (prev ? prev + " " : "") + t);
+    };
+    rec.onend = () => setListening(false);
+    recRef.current = rec;
+    rec.start();
+    setListening(true);
+  }
 
   async function save() {
     const body = text.trim();
@@ -89,6 +139,18 @@ export default function MemoryCapture({
               placeholder='Try: "Sarah said she misses wine trips to Napa"'
               className="min-h-24 w-full rounded-xl border-[1.5px] border-line p-4 outline-none focus:border-brand"
             />
+            {micAvailable && (
+              <button
+                onClick={toggleMic}
+                className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold ${
+                  listening
+                    ? "bg-red-100 text-red-600"
+                    : "bg-blue-soft text-blue-ink"
+                }`}
+              >
+                {listening ? "● Listening... tap to stop" : "🎤 Speak it instead"}
+              </button>
+            )}
             {note && (
               <p className="mt-3 rounded-xl bg-brand-soft px-4 py-3 text-sm font-medium text-brand">
                 {note}

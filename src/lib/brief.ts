@@ -25,11 +25,20 @@ type HomeItem = {
   frequency_days: number;
 };
 
+export type BriefAction = {
+  label: string;
+  kind: "confirm" | "we_talked" | "sms";
+  payload?: string;
+  personId?: string;
+  primary?: boolean;
+};
+
 export type BriefItem = {
   icon: string;
   text: string;
   meta: string;
   role: string;
+  actions?: BriefAction[];
 };
 
 const DAY = 86400000;
@@ -72,6 +81,15 @@ export function buildBrief(
               }`,
         meta: `${p.relationship} · ${days === 0 ? "today" : "coming up"}`,
         role: p.relationship === "child" ? "dad" : p.relationship,
+        actions: [
+          {
+            label: "Plan a gift",
+            kind: "confirm",
+            payload: `Pulled ${p.name}'s saved ideas into the Gifts tab. Tap it when you're ready to shop.`,
+            primary: true,
+          },
+          { label: "Remind me next week", kind: "confirm", payload: "Will do. It'll come back around." },
+        ],
       });
     }
   }
@@ -91,6 +109,15 @@ export function buildBrief(
               }`,
         meta: `${who ? who.name + " · " : ""}planning ahead`,
         role: "husband",
+        actions: [
+          {
+            label: "See restaurant ideas",
+            kind: "confirm",
+            payload: "Based on what you've told me: Osteria Nella, Vinoteca, The Grove. Booking taps come in the next update.",
+            primary: true,
+          },
+          { label: "Remind me later", kind: "confirm", payload: "Okay, parking it for now." },
+        ],
       });
     }
   }
@@ -108,6 +135,10 @@ export function buildBrief(
         text: `It's been ${gap} days since you talked with ${p.name}.`,
         meta: `${p.relationship} · reconnect`,
         role: p.relationship === "parent" ? "son" : "friend",
+        actions: [
+          { label: "We talked", kind: "we_talked", personId: p.id, primary: true },
+          { label: "Tonight at 7:30", kind: "confirm", payload: "Reminder set for 7:30 tonight." },
+        ],
       });
     }
   }
@@ -129,6 +160,9 @@ export function buildBrief(
             : `${h.task_name} is due in ${days} day${days === 1 ? "" : "s"}.`,
         meta: "home · maintenance",
         role: "home",
+        actions: [
+          { label: "Add to weekend list", kind: "confirm", payload: "On your Saturday list. Mark it done from the Home tab when it's handled.", primary: true },
+        ],
       });
     }
   }

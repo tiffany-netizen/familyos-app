@@ -4,6 +4,14 @@ import { buildBrief } from "@/lib/brief";
 import MemoryCapture from "@/components/MemoryCapture";
 import SignOutButton from "@/components/SignOutButton";
 import BottomNav from "@/components/BottomNav";
+import BriefCard from "@/components/BriefCard";
+import Link from "next/link";
+import {
+  DateNightCard,
+  HealthCard,
+  CheckinCard,
+  ReferralCard,
+} from "@/components/DemoCards";
 
 export default async function TodayPage() {
   const supabase = await createClient();
@@ -40,9 +48,17 @@ export default async function TodayPage() {
       <p className="text-xs font-semibold uppercase tracking-widest text-sub">
         {dateLabel}
       </p>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Good morning, {firstName}</h1>
-        <SignOutButton />
+        <div className="flex items-center gap-3">
+          <Link
+            href="/digest"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
+          >
+            Week ›
+          </Link>
+          <SignOutButton />
+        </div>
       </div>
 
       <h2 className="mb-3 mt-6 text-xs font-bold uppercase tracking-widest text-sub">
@@ -58,16 +74,14 @@ export default async function TodayPage() {
 
       <div className="space-y-3">
         {brief.map((b, i) => (
-          <div key={i} className="flex gap-3 rounded-2xl border border-line p-4 shadow-sm">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-soft text-lg">
-              {b.icon}
-            </div>
-            <div>
-              <p className="text-[15px] leading-snug">{b.text}</p>
-              <p className="mt-1 text-xs text-sub">{b.meta}</p>
-            </div>
-          </div>
+          <BriefCard key={i} item={b} />
         ))}
+        {(() => {
+          const spouse = (people ?? []).find((p) => p.relationship === "spouse");
+          return spouse ? <DateNightCard spouseName={spouse.name} /> : null;
+        })()}
+        <HealthCard />
+        <CheckinCard />
       </div>
 
       <h2 className="mb-3 mt-8 text-xs font-bold uppercase tracking-widest text-sub">
@@ -90,6 +104,10 @@ export default async function TodayPage() {
           ))}
         </div>
       )}
+
+      <div className="mt-8">
+        <ReferralCard />
+      </div>
 
       <MemoryCapture
         people={(people ?? []).map((p) => ({ id: p.id, name: p.name }))}

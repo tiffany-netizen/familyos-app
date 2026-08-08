@@ -35,7 +35,8 @@ export async function proxy(request: NextRequest) {
     path.startsWith("/onboarding") ||
     path.startsWith("/people") ||
     path.startsWith("/gifts") ||
-    path.startsWith("/home-hub");
+    path.startsWith("/home-hub") ||
+    path.startsWith("/digest");
   const isAuthPage = path === "/login" || path === "/signup";
 
   if (!user && isProtected) {
