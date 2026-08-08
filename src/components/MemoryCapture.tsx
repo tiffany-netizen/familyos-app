@@ -17,6 +17,40 @@ type SpeechRecognitionLike = {
 
 const GIFT_WORDS = ["want", "wants", "wanted", "misses", "miss", "loves", "mentioned", "wish", "likes", "saved"];
 
+type Person = { id: string; name: string };
+
+function splitByPeople(body: string, people: Person[]) {
+  const marks: { idx: number; person: Person }[] = [];
+  for (const p of people) {
+    const first = p.name.split(" ")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`\\b${first}\\b`, "gi");
+    let m;
+    while ((m = re.exec(body))) marks.push({ idx: m.index, person: p });
+  }
+  marks.sort((a, b) => a.idx - b.idx);
+  if (marks.length <= 1) {
+    return [{ person: marks[0]?.person ?? null, text: body }];
+  }
+  const segs: { person: Person; text: string }[] = [];
+  for (let i = 0; i < marks.length; i++) {
+    const start = i === 0 ? 0 : marks[i].idx;
+    const end = i + 1 < marks.length ? marks[i + 1].idx : body.length;
+    const t = body
+      .slice(start, end)
+      .trim()
+      .replace(/[,;.]?\s*(and|also|then|plus)?\s*$/i, "")
+      .trim();
+    if (t) segs.push({ person: marks[i].person, text: t });
+  }
+  const merged: { person: Person; text: string }[] = [];
+  for (const s of segs) {
+    const last = merged[merged.length - 1];
+    if (last && last.person.id === s.person.id) last.text += " " + s.text;
+    else merged.push({ ...s });
+  }
+  return merged;
+}
+
 export default function MemoryCapture({
   people,
 }: {
@@ -77,31 +111,37 @@ export default function MemoryCapture({
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const lower = body.toLowerCase();
-    const person = people.find((p) =>
-      lower.includes(p.name.split(" ")[0].toLowerCase())
-    );
-    const isGift = GIFT_WORDS.some((w) => lower.includes(w));
+    const segments = splitByPeople(body, people);
+    const filings: string[] = [];
 
-    await supabase.from("memories").insert({
-      owner_id: user.id,
-      person_id: person?.id ?? null,
-      body,
-      category: isGift ? "gift_idea" : "memory",
-    });
-    if (isGift && person) {
-      await supabase.from("gift_ideas").insert({
+    for (const seg of segments) {
+      const lower = seg.text.toLowerCase();
+      const isGift = GIFT_WORDS.some((w) => lower.includes(w));
+      await supabase.from("memories").insert({
         owner_id: user.id,
-        person_id: person.id,
-        title: body,
-        detail: "From a saved note",
+        person_id: seg.person?.id ?? null,
+        body: seg.text,
+        category: isGift ? "gift_idea" : "memory",
       });
+      if (isGift && seg.person) {
+        await supabase.from("gift_ideas").insert({
+          owner_id: user.id,
+          person_id: seg.person.id,
+          title: seg.text,
+          detail: "From a saved note",
+        });
+      }
+      filings.push(
+        `${seg.person ? seg.person.name.split(" ")[0] : "General"} → ${
+          isGift ? "Gift ideas" : "Memories"
+        }`
+      );
     }
 
     setNote(
-      `Filed under ${person ? person.name : "General"} → ${
-        isGift ? "Gift ideas" : "Memories"
-      }.`
+      segments.length > 1
+        ? `Split into ${segments.length}: ${filings.join(" · ")}`
+        : `Filed under ${filings[0]}.`
     );
     setText("");
     setBusy(false);
@@ -109,7 +149,7 @@ export default function MemoryCapture({
     setTimeout(() => {
       setNote(null);
       setOpen(false);
-    }, 2500);
+    }, 3200);
   }
 
   return (
