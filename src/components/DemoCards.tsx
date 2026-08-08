@@ -2,15 +2,97 @@
 
 import { useState } from "react";
 
-const RESTAURANTS: Record<string, string[]> = {
-  Cheap: ["Taco Loco (0.8 mi)", "Nonna's Slice House", "The Noodle Bar"],
-  Mid: ["Osteria Nella", "Harvest Table", "Blue Fin Sushi"],
-  Pricey: ["Vinoteca", "The Grove Steakhouse", "Chez Camille"],
+const FALLBACK: Record<string, { name: string; dist: string }[]> = {
+  Cheap: [
+    { name: "Taco Loco", dist: "" },
+    { name: "Nonna's Slice House", dist: "" },
+    { name: "The Noodle Bar", dist: "" },
+  ],
+  Mid: [
+    { name: "Osteria Nella", dist: "" },
+    { name: "Harvest Table", dist: "" },
+    { name: "Blue Fin Sushi", dist: "" },
+  ],
+  Pricey: [
+    { name: "Vinoteca", dist: "" },
+    { name: "The Grove Steakhouse", dist: "" },
+    { name: "Chez Camille", dist: "" },
+  ],
 };
+
+const CHEAP_CUISINES = ["burger", "pizza", "mexican", "sandwich", "chicken", "kebab", "noodle", "taco"];
+const PRICEY_CUISINES = ["french", "japanese", "steak", "steak_house", "seafood", "sushi", "fine_dining"];
+
+type Spot = { name: string; dist: string; tier: string };
+
+function miles(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export function DateNightCard({ spouseName }: { spouseName: string }) {
   const [tier, setTier] = useState<string | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
+  const [spots, setSpots] = useState<Spot[] | null>(null);
+  const [locState, setLocState] = useState<"idle" | "finding" | "live" | "fallback">("idle");
+
+  async function useLocation() {
+    setLocState("finding");
+    try {
+      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, {
+          timeout: 10000,
+          maximumAge: 300000,
+        })
+      );
+      const { latitude: lat, longitude: lon } = pos.coords;
+      const q = `[out:json][timeout:10];(node[amenity~"restaurant|fast_food"][name](around:5000,${lat},${lon}););out body 80;`;
+      const r = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: "data=" + encodeURIComponent(q),
+      });
+      const data = await r.json();
+      const seen = new Set<string>();
+      const found: Spot[] = [];
+      for (const el of data.elements ?? []) {
+        const name = el.tags?.name;
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        const cuisine = (el.tags?.cuisine ?? "").toLowerCase();
+        let t = "Mid";
+        if (
+          el.tags?.amenity === "fast_food" ||
+          CHEAP_CUISINES.some((c) => cuisine.includes(c))
+        )
+          t = "Cheap";
+        else if (PRICEY_CUISINES.some((c) => cuisine.includes(c))) t = "Pricey";
+        const d = miles(lat, lon, el.lat, el.lon);
+        found.push({ name, dist: `${d.toFixed(1)} mi`, tier: t });
+      }
+      found.sort((a, b) => parseFloat(a.dist) - parseFloat(b.dist));
+      if (found.length === 0) throw new Error("none");
+      setSpots(found);
+      setLocState("live");
+    } catch {
+      setSpots(null);
+      setLocState("fallback");
+    }
+  }
+
+  function listFor(t: string): { name: string; dist: string }[] {
+    if (spots) {
+      const l = spots.filter((s) => s.tier === t).slice(0, 4);
+      return l.length ? l : spots.slice(0, 4);
+    }
+    return FALLBACK[t];
+  }
 
   return (
     <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
@@ -23,39 +105,62 @@ export function DateNightCard({ spouseName }: { spouseName: string }) {
             <b>Date night with {spouseName}.</b> Pick a lane and I&apos;ll pull
             options nearby.
           </p>
-          <p className="mt-1 text-xs text-sub">husband · standing priority</p>
+          <p className="mt-1 text-xs text-sub">
+            husband ·{" "}
+            {locState === "live"
+              ? "restaurants near you"
+              : locState === "fallback"
+                ? "sample list (location unavailable)"
+                : "standing priority"}
+          </p>
 
           {booked ? (
             <p className="mt-2.5 text-[13px] font-semibold text-brand">
-              ✓ {booked} it is. Real booking arrives in the next update, so
-              lock it in the old-fashioned way for now.
+              ✓ {booked} it is. Real booking arrives in a later update, so lock
+              it in the old-fashioned way for now.
             </p>
           ) : (
             <>
-              <div className="mt-3 flex gap-2">
-                {Object.keys(RESTAURANTS).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setTier(t)}
-                    className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold ${
-                      tier === t
-                        ? "bg-brand text-white"
-                        : "bg-blue-soft text-blue-ink"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-              {tier && (
-                <div className="mt-3 space-y-1.5">
-                  {RESTAURANTS[tier].map((r) => (
+              {locState === "idle" && (
+                <button
+                  onClick={useLocation}
+                  className="mt-3 rounded-lg bg-blue-soft px-3.5 py-2 text-[13px] font-semibold text-blue-ink"
+                >
+                  📍 Find restaurants near me
+                </button>
+              )}
+              {locState === "finding" && (
+                <p className="mt-3 text-[13px] font-semibold text-blue-ink">
+                  Finding spots near you...
+                </p>
+              )}
+              {(locState === "live" || locState === "fallback") && (
+                <div className="mt-3 flex gap-2">
+                  {["Cheap", "Mid", "Pricey"].map((t) => (
                     <button
-                      key={r}
-                      onClick={() => setBooked(r)}
-                      className="block w-full rounded-lg border border-line px-3 py-2 text-left text-[13px] font-medium"
+                      key={t}
+                      onClick={() => setTier(t)}
+                      className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold ${
+                        tier === t
+                          ? "bg-brand text-white"
+                          : "bg-blue-soft text-blue-ink"
+                      }`}
                     >
-                      {r}
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {tier && locState !== "idle" && locState !== "finding" && (
+                <div className="mt-3 space-y-1.5">
+                  {listFor(tier).map((r) => (
+                    <button
+                      key={r.name}
+                      onClick={() => setBooked(r.name)}
+                      className="flex w-full items-center justify-between rounded-lg border border-line px-3 py-2 text-left text-[13px] font-medium"
+                    >
+                      <span>{r.name}</span>
+                      {r.dist && <span className="text-xs text-sub">{r.dist}</span>}
                     </button>
                   ))}
                 </div>
