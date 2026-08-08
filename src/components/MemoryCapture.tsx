@@ -66,7 +66,7 @@ export default function MemoryCapture({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-2xl text-white shadow-lg"
+        className="fixed bottom-24 right-5 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-2xl text-white shadow-lg"
         aria-label="Remember something"
       >
         +
