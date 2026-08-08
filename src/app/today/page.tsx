@@ -12,6 +12,7 @@ import {
   CheckinCard,
   ReferralCard,
 } from "@/components/DemoCards";
+import ClearData from "@/components/ClearData";
 
 export default async function TodayPage() {
   const supabase = await createClient();
@@ -108,6 +109,7 @@ export default async function TodayPage() {
       <div className="mt-8">
         <ReferralCard />
       </div>
+      <ClearData />
 
       <MemoryCapture
         people={(people ?? []).map((p) => ({ id: p.id, name: p.name }))}

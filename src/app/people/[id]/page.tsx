@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import CallCard from "@/components/CallCard";
+import EditPerson from "@/components/EditPerson";
 import { avatarColor, relationshipLabel } from "@/lib/peopleUi";
 
 export default async function PersonPage({
@@ -63,10 +64,11 @@ export default async function PersonPage({
         >
           {p.name[0]?.toUpperCase()}
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">{p.name}</h1>
           <p className="text-sm text-sub">{relationshipLabel(p.relationship)}</p>
         </div>
+        <EditPerson person={p} />
       </div>
 
       {showCall && <CallCard personId={p.id} lastContact={p.last_contact} />}
