@@ -33,6 +33,14 @@ const HOLIDAYS: { label: string; date: string }[] = [
   { label: "Christmas", date: "2026-12-25" },
 ];
 
+const WEEKDAYS: { n: number; l: string }[] = [
+  { n: 1, l: "Mon" },
+  { n: 2, l: "Tue" },
+  { n: 3, l: "Wed" },
+  { n: 4, l: "Thu" },
+  { n: 5, l: "Fri" },
+];
+
 function Chip({
   on,
   children,
@@ -47,9 +55,7 @@ function Chip({
       type="button"
       onClick={onClick}
       className={`rounded-xl border-[1.5px] px-4 py-2.5 text-sm ${
-        on
-          ? "border-brand bg-brand-soft font-semibold"
-          : "border-line bg-white"
+        on ? "border-brand bg-brand-soft font-semibold" : "border-line bg-white"
       }`}
     >
       {children}
@@ -86,26 +92,60 @@ function Field({
   );
 }
 
+function DayPicker({
+  days,
+  setDays,
+}: {
+  days: number[];
+  setDays: (d: number[]) => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      {WEEKDAYS.map((w) => (
+        <Chip
+          key={w.n}
+          on={days.includes(w.n)}
+          onClick={() =>
+            setDays(
+              days.includes(w.n)
+                ? days.filter((x) => x !== w.n)
+                : [...days, w.n]
+            )
+          }
+        >
+          {w.l}
+        </Chip>
+      ))}
+    </div>
+  );
+}
+
 export default function Onboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Step 1: spouse
+  // Step 0: spouse
   const [married, setMarried] = useState(true);
   const [spouseName, setSpouseName] = useState("");
   const [spouseBirthday, setSpouseBirthday] = useState("");
   const [anniversary, setAnniversary] = useState("");
   const [spouseInterests, setSpouseInterests] = useState("");
   const [customDates, setCustomDates] = useState("");
+  const [works, setWorks] = useState("full");
+  const [job, setJob] = useState("");
+  const [stressNote, setStressNote] = useState("");
+  const [sweetText, setSweetText] = useState(true);
 
-  // Step 2: kids
+  // Step 1: kids + sitter
   const [kidCount, setKidCount] = useState(0);
   const [kids, setKids] = useState<Kid[]>([]);
   const [kidIndex, setKidIndex] = useState(0);
+  const [sitterName, setSitterName] = useState("");
+  const [sitterSched, setSitterSched] = useState("");
 
-  // Step 3: parents & pets
+  // Step 2: parents & pets
   const [trackParents, setTrackParents] = useState(true);
   const [momName, setMomName] = useState("");
   const [momBirthday, setMomBirthday] = useState("");
@@ -114,20 +154,17 @@ export default function Onboarding() {
   const [petName, setPetName] = useState("");
   const [petKind, setPetKind] = useState("");
 
-  // Step 4: reminders
+  // Step 3: reminders
   const [holidays, setHolidays] = useState<string[]>(
     HOLIDAYS.map((h) => h.label)
   );
   const [dateNightDays, setDateNightDays] = useState(14);
   const [giftLists, setGiftLists] = useState(true);
 
-  // Step 5: home
-  const [trackHome, setTrackHome] = useState(true);
-  const [providers, setProviders] = useState("");
-  const [homeTasks, setHomeTasks] = useState<string[]>([
-    "HVAC filters",
-    "Smoke detector batteries",
-  ]);
+  // Step 4: your week
+  const [schoolDays, setSchoolDays] = useState<number[]>([]);
+  const [dinnerDays, setDinnerDays] = useState<number[]>([]);
+  const [weekExtras, setWeekExtras] = useState("");
 
   function setKid(i: number, patch: Partial<Kid>) {
     setKids((ks) => ks.map((k, j) => (j === i ? { ...k, ...patch } : k)));
@@ -139,7 +176,7 @@ export default function Onboarding() {
     setKidIndex(0);
   }
 
-  const steps = ["You", "Kids", "Family", "Reminders", "Home"];
+  const steps = ["You", "Kids", "Family", "Reminders", "Your week"];
   const kidStepDone = kidCount === 0 || kidIndex >= kidCount - 1;
 
   async function finish() {
@@ -165,6 +202,9 @@ export default function Onboarding() {
           relationship: "spouse",
           birthday: spouseBirthday || null,
           interests: spouseInterests || null,
+          works: works || null,
+          job: job || null,
+          stress_note: stressNote || null,
         });
       }
       kids.forEach((k) => {
@@ -208,8 +248,11 @@ export default function Onboarding() {
 
       let spouseId: string | null = null;
       if (people.length) {
-        // Bulk inserts require identical keys on every row (PGRST102)
-        const KEYS = ["owner_id","name","relationship","birthday","gender","grade","teacher_name","best_friend","clothing_size","interests","breed"];
+        const KEYS = [
+          "owner_id","name","relationship","birthday","gender","grade",
+          "teacher_name","best_friend","clothing_size","interests","breed",
+          "works","job","stress_note",
+        ];
         const normalized = people.map((p) =>
           Object.fromEntries(KEYS.map((k) => [k, p[k] ?? null]))
         );
@@ -256,39 +299,60 @@ export default function Onboarding() {
         if (e2) throw e2;
       }
 
-      if (trackHome) {
-        if (homeTasks.length) {
-          const { error: e3 } = await supabase.from("home_items").insert(
-            homeTasks.map((t) => ({
-              owner_id: user.id,
-              task_name: t,
-              frequency_days: t.includes("HVAC") ? 90 : 365,
-            }))
-          );
-          if (e3) throw e3;
-        }
-        const provRows = providers
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((name) => ({ owner_id: user.id, name, kind: "other" }));
-        if (provRows.length) {
-          const { error: e4 } = await supabase
-            .from("service_providers")
-            .insert(provRows);
-          if (e4) throw e4;
-        }
+      // Weekly routines
+      const routines: Record<string, unknown>[] = [];
+      if (schoolDays.length)
+        routines.push({
+          owner_id: user.id,
+          kind: "school_run",
+          label: "School drop-off / pick-up",
+          days: schoolDays.sort().join(","),
+        });
+      if (dinnerDays.length)
+        routines.push({
+          owner_id: user.id,
+          kind: "dinner",
+          label: "Dinner duty",
+          days: dinnerDays.sort().join(","),
+        });
+      if (routines.length) {
+        const { error: e3 } = await supabase.from("routines").insert(routines);
+        if (e3) throw e3;
       }
 
-      const { error: e5 } = await supabase
+      // This week's extras become todos
+      const extras = weekExtras
+        .split(/[,\n]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (extras.length) {
+        const { error: e4 } = await supabase
+          .from("todos")
+          .insert(extras.map((t) => ({ owner_id: user.id, title: t })));
+        if (e4) throw e4;
+      }
+
+      // Babysitter
+      if (sitterName.trim()) {
+        const { error: e5 } = await supabase.from("service_providers").insert({
+          owner_id: user.id,
+          name: sitterName.trim(),
+          kind: "babysitter",
+          schedule_note: sitterSched.trim() || null,
+        });
+        if (e5) throw e5;
+      }
+
+      const { error: e6 } = await supabase
         .from("profiles")
         .update({
           onboarded: true,
           date_night_frequency_days: dateNightDays,
           wants_gift_lists: giftLists,
+          sweet_text_optin: married ? sweetText : false,
         })
         .eq("id", user.id);
-      if (e5) throw e5;
+      if (e6) throw e6;
 
       router.push("/today");
       router.refresh();
@@ -306,9 +370,7 @@ export default function Onboarding() {
         {steps.map((s, i) => (
           <div
             key={s}
-            className={`h-1 flex-1 rounded-full ${
-              i <= step ? "bg-brand" : "bg-line"
-            }`}
+            className={`h-1 flex-1 rounded-full ${i <= step ? "bg-brand" : "bg-line"}`}
           />
         ))}
       </div>
@@ -318,12 +380,8 @@ export default function Onboarding() {
           <h1 className="mb-1 text-2xl font-bold">First, about you</h1>
           <p className="mb-5 text-sub">Are you married or partnered?</p>
           <div className="mb-4 flex gap-2">
-            <Chip on={married} onClick={() => setMarried(true)}>
-              Yes
-            </Chip>
-            <Chip on={!married} onClick={() => setMarried(false)}>
-              No
-            </Chip>
+            <Chip on={married} onClick={() => setMarried(true)}>Yes</Chip>
+            <Chip on={!married} onClick={() => setMarried(false)}>No</Chip>
           </div>
           {married && (
             <div className="space-y-4">
@@ -331,6 +389,39 @@ export default function Onboarding() {
               <Field label="Their birthday" type="date" value={spouseBirthday} onChange={setSpouseBirthday} />
               <Field label="Anniversary" type="date" value={anniversary} onChange={setAnniversary} />
               <Field label="Their interests" value={spouseInterests} onChange={setSpouseInterests} placeholder="Wine, hiking, Italy" />
+              <div>
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+                  Do they work?
+                </span>
+                <div className="flex gap-2">
+                  {[["full", "Full time"], ["part", "Part time"], ["no", "No"]].map(([v, l]) => (
+                    <Chip key={v} on={works === v} onClick={() => setWorks(v)}>{l}</Chip>
+                  ))}
+                </div>
+              </div>
+              {works !== "no" && (
+                <>
+                  <Field label="What do they do?" value={job} onChange={setJob} placeholder="Nurse, teacher, sales..." />
+                  <Field
+                    label="Stressful moments worth a good-luck text?"
+                    value={stressNote}
+                    onChange={setStressNote}
+                    placeholder="Monday presentations, end of quarter..."
+                  />
+                </>
+              )}
+              <div>
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+                  Random weekly nudge to send them a sweet text?
+                </span>
+                <p className="mb-2 text-[13px] text-sub">
+                  Impromptu surprise texts go a long way.
+                </p>
+                <div className="flex gap-2">
+                  <Chip on={sweetText} onClick={() => setSweetText(true)}>Yes please</Chip>
+                  <Chip on={!sweetText} onClick={() => setSweetText(false)}>No thanks</Chip>
+                </div>
+              </div>
               <Field label="Other dates to track (comma separated)" value={customDates} onChange={setCustomDates} placeholder="First date, proposal day" />
             </div>
           )}
@@ -370,6 +461,17 @@ export default function Onboarding() {
               </div>
             </div>
           )}
+          {kidCount > 0 && kidStepDone && (
+            <div className="mt-5 space-y-4 border-t border-line pt-4">
+              <p className="text-sm font-semibold">
+                Do you have a nanny or babysitter you use regularly?
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Their name (optional)" value={sitterName} onChange={setSitterName} />
+                <Field label="Usual schedule" value={sitterSched} onChange={setSitterSched} placeholder="Tue/Thu afternoons" />
+              </div>
+            </div>
+          )}
           <div className="mt-auto flex gap-2 pt-6">
             {kidIndex > 0 && (
               <button onClick={() => setKidIndex(kidIndex - 1)} className="rounded-xl border-[1.5px] border-line px-5 py-4 font-semibold text-sub">
@@ -393,12 +495,8 @@ export default function Onboarding() {
             Want reminders to call your parents and track their birthdays?
           </p>
           <div className="mb-4 flex gap-2">
-            <Chip on={trackParents} onClick={() => setTrackParents(true)}>
-              Yes
-            </Chip>
-            <Chip on={!trackParents} onClick={() => setTrackParents(false)}>
-              Skip
-            </Chip>
+            <Chip on={trackParents} onClick={() => setTrackParents(true)}>Yes</Chip>
+            <Chip on={!trackParents} onClick={() => setTrackParents(false)}>Skip</Chip>
           </div>
           {trackParents && (
             <div className="space-y-4">
@@ -465,12 +563,8 @@ export default function Onboarding() {
             Keep a running gift idea list for each person?
           </p>
           <div className="flex gap-2">
-            <Chip on={giftLists} onClick={() => setGiftLists(true)}>
-              Yes please
-            </Chip>
-            <Chip on={!giftLists} onClick={() => setGiftLists(false)}>
-              No
-            </Chip>
+            <Chip on={giftLists} onClick={() => setGiftLists(true)}>Yes please</Chip>
+            <Chip on={!giftLists} onClick={() => setGiftLists(false)}>No</Chip>
           </div>
           <button onClick={() => setStep(4)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
             Next
@@ -480,49 +574,37 @@ export default function Onboarding() {
 
       {step === 4 && (
         <section className="flex flex-1 flex-col">
-          <h1 className="mb-1 text-2xl font-bold">Your home</h1>
+          <h1 className="mb-1 text-2xl font-bold">Your week</h1>
           <p className="mb-5 text-sub">
-            Want help tracking the house too? Filters, batteries, service
-            providers.
+            Every morning you&apos;ll get a checklist so nothing slips. To build
+            it, tell me about this week through Sunday. Each Sunday you can
+            update it for the week ahead.
           </p>
-          <div className="mb-4 flex gap-2">
-            <Chip on={trackHome} onClick={() => setTrackHome(true)}>
-              Yes
-            </Chip>
-            <Chip on={!trackHome} onClick={() => setTrackHome(false)}>
-              Later
-            </Chip>
-          </div>
-          {trackHome && (
-            <div className="space-y-4">
-              <div>
-                <p className="mb-2 text-sm font-semibold text-sub">
-                  Start tracking:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {["HVAC filters", "Smoke detector batteries", "Lawn treatment", "Gutter cleaning"].map((t) => (
-                    <Chip
-                      key={t}
-                      on={homeTasks.includes(t)}
-                      onClick={() =>
-                        setHomeTasks((hs) =>
-                          hs.includes(t) ? hs.filter((x) => x !== t) : [...hs, t]
-                        )
-                      }
-                    >
-                      {t}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-              <Field
-                label="Service providers (comma separated)"
-                value={providers}
-                onChange={setProviders}
-                placeholder="Luis the gardener, Mike's Auto, Chen CPA"
+          <div className="space-y-5">
+            <div>
+              <span className="mb-2 block text-sm font-semibold">
+                What days are you picking up or dropping kids at school?
+              </span>
+              <DayPicker days={schoolDays} setDays={setSchoolDays} />
+            </div>
+            <div>
+              <span className="mb-2 block text-sm font-semibold">
+                What days do you need to make dinner?
+              </span>
+              <DayPicker days={dinnerDays} setDays={setDinnerDays} />
+            </div>
+            <div>
+              <span className="mb-2 block text-sm font-semibold">
+                Anything else this week you&apos;d like to be reminded of?
+              </span>
+              <textarea
+                value={weekExtras}
+                onChange={(e) => setWeekExtras(e.target.value)}
+                placeholder="School play Tuesday, sign permission slip, order team photos"
+                className="min-h-20 w-full rounded-xl border-[1.5px] border-line p-4 outline-none focus:border-brand"
               />
             </div>
-          )}
+          </div>
           {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
           <button
             onClick={finish}

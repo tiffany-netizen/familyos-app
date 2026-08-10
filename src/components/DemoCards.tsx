@@ -220,7 +220,9 @@ export function CheckinCard() {
       <div className="flex-1">
         <p className="text-[15px] leading-snug">
           <b>Weekly check-in.</b> Anything come up this week you want me to
-          remember? A gift hint, a toy they loved, something they said?
+          remember? A gift hint, a toy they loved, something they said? And on
+          Sundays, update your week: school runs, dinner nights, what&apos;s
+          coming.
         </p>
         <button
           onClick={() => window.dispatchEvent(new Event("open-memory"))}

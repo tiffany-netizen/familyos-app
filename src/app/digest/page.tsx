@@ -13,11 +13,12 @@ export default async function DigestPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: people }, { data: dates }, { data: events }] =
+  const [{ data: people }, { data: dates }, { data: events }, { data: routines }] =
     await Promise.all([
       supabase.from("people").select("*"),
       supabase.from("tracked_dates").select("*"),
       supabase.from("sports_events").select("*"),
+      supabase.from("routines").select("*"),
     ]);
 
   const today = new Date();
@@ -34,6 +35,17 @@ export default async function DigestPage() {
     });
     (dates ?? []).forEach((t) => {
       if (t.date_value?.slice(5) === mmdd) items.push(`📅 ${t.label}`);
+    });
+    (routines ?? []).forEach((r) => {
+      if (r.days.split(",").map(Number).includes(d.getDay())) {
+        items.push(
+          r.kind === "school_run"
+            ? "🎒 School drop-off / pick-up (you)"
+            : r.kind === "dinner"
+              ? "🍳 Dinner duty"
+              : `📌 ${r.label ?? "Routine"}`
+        );
+      }
     });
     (events ?? []).forEach((e) => {
       const ed = new Date(e.event_date);

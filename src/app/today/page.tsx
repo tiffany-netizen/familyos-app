@@ -21,7 +21,7 @@ export default async function TodayPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: people }, { data: dates }, { data: homeItems }, { data: memories }] =
+  const [{ data: profile }, { data: people }, { data: dates }, { data: homeItems }, { data: memories }, { data: routines }, { data: openTodos }] =
     await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("people").select("*").order("created_at"),
@@ -32,11 +32,21 @@ export default async function TodayPage() {
         .select("*, people(name)")
         .order("created_at", { ascending: false })
         .limit(5),
+      supabase.from("routines").select("*"),
+      supabase.from("todos").select("id").eq("done", false),
     ]);
 
   if (profile && !profile.onboarded) redirect("/onboarding");
 
-  const brief = buildBrief(people ?? [], dates ?? [], homeItems ?? []);
+  const brief = buildBrief(
+    people ?? [],
+    dates ?? [],
+    homeItems ?? [],
+    new Date(),
+    routines ?? [],
+    profile
+  );
+  const todoCount = (openTodos ?? []).length;
   const firstName = (profile?.full_name || "there").split(" ")[0];
   const dateLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -81,6 +91,18 @@ export default async function TodayPage() {
           const spouse = (people ?? []).find((p) => p.relationship === "spouse");
           return spouse ? <DateNightCard spouseName={spouse.name} /> : null;
         })()}
+        {todoCount > 0 && (
+          <Link
+            href="/todos"
+            className="flex items-center justify-between rounded-2xl border border-line bg-white p-4 shadow-sm"
+          >
+            <span className="text-[15px]">
+              ✅ <b>{todoCount} thing{todoCount === 1 ? "" : "s"}</b> on your
+              to-do list
+            </span>
+            <span className="text-sm font-semibold text-blue-ink">View ›</span>
+          </Link>
+        )}
         <HealthCard />
         <CheckinCard />
       </div>

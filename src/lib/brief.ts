@@ -57,14 +57,73 @@ function daysUntil(d: Date, today: Date): number {
   return Math.round((d.getTime() - today.getTime()) / DAY);
 }
 
+type Routine = { kind: string; label: string | null; days: string };
+type Profile = { sweet_text_optin?: boolean } | null;
+
 export function buildBrief(
   people: Person[],
   dates: TrackedDate[],
   homeItems: HomeItem[],
-  today = new Date()
+  today = new Date(),
+  routines: Routine[] = [],
+  profile: Profile = null
 ): BriefItem[] {
   const items: BriefItem[] = [];
   const byId = new Map(people.map((p) => [p.id, p]));
+  const dow = today.getDay();
+
+  // Today's routines (school run, dinner duty)
+  for (const r of routines) {
+    if (!r.days.split(",").map(Number).includes(dow)) continue;
+    if (r.kind === "school_run") {
+      items.push({
+        icon: "🎒",
+        text: "School run today. You're on drop-off / pick-up duty.",
+        meta: "dad · today's checklist",
+        role: "dad",
+        actions: [{ label: "Got it", kind: "confirm", payload: "Checked off for today.", primary: true }],
+      });
+    } else if (r.kind === "dinner") {
+      items.push({
+        icon: "🍳",
+        text: "Dinner's on you tonight.",
+        meta: "home · today's checklist",
+        role: "home",
+        actions: [{ label: "Got it", kind: "confirm", payload: "Checked off. Bon appétit.", primary: true }],
+      });
+    }
+  }
+
+  // Weekly sweet text nudge: lands on a weekday that shifts each week
+  const spouse = people.find(
+    (p) => (p as Person & { relationship: string }).relationship === "spouse"
+  ) as (Person & { stress_note?: string | null; job?: string | null }) | undefined;
+  if (profile?.sweet_text_optin && spouse) {
+    const week = Math.floor(today.getTime() / (7 * 86400000));
+    const nudgeDay = ((week * 3 + 1) % 5) + 1; // Mon-Fri, moves each week
+    if (dow === nudgeDay) {
+      const stress = spouse.stress_note;
+      items.push({
+        icon: "💬",
+        text: `Surprise ${spouse.name} with a short sweet text today.${
+          stress ? ` (You mentioned: ${stress}.)` : ""
+        } Impromptu beats planned.`,
+        meta: "husband · weekly nudge",
+        role: "husband",
+        actions: [
+          {
+            label: "Draft the text",
+            kind: "sms",
+            payload: stress
+              ? `Thinking of you today. You've got this ❤️`
+              : `No reason. Just thinking about you ❤️`,
+            primary: true,
+          },
+          { label: "Skip this week", kind: "confirm", payload: "Okay. Next nudge lands on a different day." },
+        ],
+      });
+    }
+  }
 
   // Birthdays coming up
   for (const p of people) {
