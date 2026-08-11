@@ -1,9 +1,11 @@
-// Computes the daily brief from real data. Rule-based for v1;
-// the Claude API layer in phase 2 turns these into natural language.
+// Computes the daily brief from real data. This rule-based version is the
+// instant scaffold and the fallback; the Claude API layer (lib/aiBrief.ts)
+// rewrites the brief in natural language when a key is configured.
 
 type Person = {
   id: string;
   name: string;
+  nickname?: string | null;
   relationship: string;
   birthday: string | null;
   teacher_name: string | null;
@@ -25,10 +27,18 @@ type HomeItem = {
   frequency_days: number;
 };
 
+export type Trip = {
+  kind: string;
+  destination: string;
+  start_date: string | null;
+  end_date: string | null;
+};
+
 export type BriefAction = {
   label: string;
-  kind: "confirm" | "we_talked" | "sms";
+  kind: "confirm" | "we_talked" | "sms" | "link";
   payload?: string;
+  href?: string;
   personId?: string;
   primary?: boolean;
 };
@@ -42,6 +52,11 @@ export type BriefItem = {
 };
 
 const DAY = 86400000;
+
+export function openTableUrl(term?: string) {
+  const base = "https://www.opentable.com/s?covers=2";
+  return term ? `${base}&term=${encodeURIComponent(term)}` : base;
+}
 
 function nextOccurrence(dateStr: string, recursYearly: boolean, today: Date): Date {
   const d = new Date(dateStr + "T00:00:00");
@@ -57,8 +72,13 @@ function daysUntil(d: Date, today: Date): number {
   return Math.round((d.getTime() - today.getTime()) / DAY);
 }
 
-type Routine = { kind: string; label: string | null; days: string };
-type Profile = { sweet_text_optin?: boolean } | null;
+type Routine = {
+  kind: string;
+  label: string | null;
+  days: string;
+  day_times?: Record<string, string> | null;
+};
+type Profile = { sweet_text_optin?: boolean | null } | null;
 
 export function buildBrief(
   people: Person[],
@@ -66,13 +86,14 @@ export function buildBrief(
   homeItems: HomeItem[],
   today = new Date(),
   routines: Routine[] = [],
-  profile: Profile = null
+  profile: Profile = null,
+  trips: Trip[] = []
 ): BriefItem[] {
   const items: BriefItem[] = [];
   const byId = new Map(people.map((p) => [p.id, p]));
   const dow = today.getDay();
 
-  // Today's routines (school run, dinner duty)
+  // Today's routines (school run, dinner duty, weekend activities)
   for (const r of routines) {
     if (!r.days.split(",").map(Number).includes(dow)) continue;
     if (r.kind === "school_run") {
@@ -86,23 +107,46 @@ export function buildBrief(
     } else if (r.kind === "dinner") {
       items.push({
         icon: "🍳",
-        text: "Dinner's on you tonight.",
+        text: "Dinner's on you tonight. Want a hand with the menu?",
         meta: "home · today's checklist",
         role: "home",
-        actions: [{ label: "Got it", kind: "confirm", payload: "Checked off. Bon appétit.", primary: true }],
+        actions: [
+          {
+            label: "Recipe ideas",
+            kind: "link",
+            href: "https://www.allrecipes.com/search?q=easy+weeknight+dinner",
+            primary: true,
+          },
+          {
+            label: "Order groceries",
+            kind: "link",
+            href: "https://www.instacart.com/store",
+          },
+          { label: "Got it", kind: "confirm", payload: "Checked off. Bon appétit." },
+        ],
+      });
+    } else {
+      const time = r.day_times?.[String(dow)];
+      items.push({
+        icon: "📌",
+        text: `${r.label ?? "Weekend activity"} today${time ? ` at ${time}` : ""}.`,
+        meta: "family · your week",
+        role: "dad",
+        actions: [{ label: "Got it", kind: "confirm", payload: "On the radar.", primary: true }],
       });
     }
   }
 
   // Weekly sweet text nudge: lands on a weekday that shifts each week
-  const spouse = people.find(
-    (p) => (p as Person & { relationship: string }).relationship === "spouse"
-  ) as (Person & { stress_note?: string | null; job?: string | null }) | undefined;
+  const spouse = people.find((p) => p.relationship === "spouse") as
+    | (Person & { stress_note?: string | null; job?: string | null })
+    | undefined;
   if (profile?.sweet_text_optin && spouse) {
     const week = Math.floor(today.getTime() / (7 * 86400000));
     const nudgeDay = ((week * 3 + 1) % 5) + 1; // Mon-Fri, moves each week
     if (dow === nudgeDay) {
       const stress = spouse.stress_note;
+      const dear = spouse.nickname || spouse.name.split(" ")[0];
       items.push({
         icon: "💬",
         text: `Surprise ${spouse.name} with a short sweet text today.${
@@ -115,14 +159,38 @@ export function buildBrief(
             label: "Draft the text",
             kind: "sms",
             payload: stress
-              ? `Thinking of you today. You've got this ❤️`
-              : `No reason. Just thinking about you ❤️`,
+              ? `Hey ${dear}, thinking of you today. You've got this ❤️`
+              : `Hey ${dear}, no reason. Just thinking about you ❤️`,
             primary: true,
           },
           { label: "Skip this week", kind: "confirm", payload: "Okay. Next nudge lands on a different day." },
         ],
       });
     }
+  }
+
+  // Trips coming up
+  for (const t of trips) {
+    if (!t.start_date) continue;
+    const days = daysUntil(new Date(t.start_date + "T00:00:00"), today);
+    if (days < 0 || days > 14) continue;
+    const isWork = t.kind === "work";
+    items.push({
+      icon: isWork ? "💼" : "🧳",
+      text:
+        days === 0
+          ? `Your ${isWork ? "work trip" : "trip"} to ${t.destination} starts today.`
+          : `Your ${isWork ? "work trip" : "trip"} to ${t.destination} is in ${days} day${days === 1 ? "" : "s"}.${
+              isWork
+                ? " A little prep now makes the week easier on everyone at home."
+                : " Want to line up something fun before you go?"
+            }`,
+      meta: `${isWork ? "work" : "family"} · trip`,
+      role: isWork ? "husband" : "dad",
+      actions: [
+        { label: "Got it", kind: "confirm", payload: "On the radar.", primary: true },
+      ],
+    });
   }
 
   // Birthdays coming up
@@ -170,9 +238,9 @@ export function buildBrief(
         role: "husband",
         actions: [
           {
-            label: "See restaurant ideas",
-            kind: "confirm",
-            payload: "Based on what you've told me: Osteria Nella, Vinoteca, The Grove. Booking taps come in the next update.",
+            label: "Check tables on OpenTable",
+            kind: "link",
+            href: openTableUrl(),
             primary: true,
           },
           { label: "Remind me later", kind: "confirm", payload: "Okay, parking it for now." },

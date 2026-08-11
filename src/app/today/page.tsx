@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { buildBrief } from "@/lib/brief";
+import { buildBrief, type BriefItem } from "@/lib/brief";
+import { aiEnabled } from "@/lib/ai";
+import AiBriefRefresher from "@/components/AiBriefRefresher";
+import FollowupCard from "@/components/FollowupCard";
 import MemoryCapture from "@/components/MemoryCapture";
 import SignOutButton from "@/components/SignOutButton";
 import BottomNav from "@/components/BottomNav";
@@ -21,7 +24,8 @@ export default async function TodayPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: people }, { data: dates }, { data: homeItems }, { data: memories }, { data: routines }, { data: openTodos }] =
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [{ data: profile }, { data: people }, { data: dates }, { data: homeItems }, { data: memories }, { data: routines }, { data: openTodos }, { data: trips }, { data: cachedBrief }] =
     await Promise.all([
       supabase.from("profiles").select("*").eq("id", user.id).single(),
       supabase.from("people").select("*").order("created_at"),
@@ -34,18 +38,37 @@ export default async function TodayPage() {
         .limit(5),
       supabase.from("routines").select("*"),
       supabase.from("todos").select("id").eq("done", false),
+      supabase
+        .from("trips")
+        .select("kind,destination,start_date,end_date")
+        .gte("end_date", todayStr),
+      supabase
+        .from("briefs")
+        .select("intro,items")
+        .eq("owner_id", user.id)
+        .eq("brief_date", todayStr)
+        .maybeSingle(),
     ]);
 
   if (profile && !profile.onboarded) redirect("/onboarding");
 
-  const brief = buildBrief(
-    people ?? [],
-    dates ?? [],
-    homeItems ?? [],
-    new Date(),
-    routines ?? [],
-    profile
-  );
+  // Cached AI brief wins; the rule-based one renders instantly otherwise
+  // and AiBriefRefresher upgrades it in the background.
+  const aiItems = (cachedBrief?.items as BriefItem[] | undefined) ?? null;
+  const brief =
+    aiItems && aiItems.length
+      ? aiItems
+      : buildBrief(
+          people ?? [],
+          dates ?? [],
+          homeItems ?? [],
+          new Date(),
+          routines ?? [],
+          profile,
+          trips ?? []
+        );
+  const intro = aiItems && aiItems.length ? cachedBrief?.intro : null;
+  const needsAi = aiEnabled() && !(aiItems && aiItems.length);
   const todoCount = (openTodos ?? []).length;
   const firstName = (profile?.full_name || "there").split(" ")[0];
   const dateLabel = new Date().toLocaleDateString("en-US", {
@@ -72,9 +95,15 @@ export default async function TodayPage() {
         </div>
       </div>
 
+      {intro && (
+        <p className="mt-3 text-[15px] leading-relaxed text-ink">{intro}</p>
+      )}
+
       <h2 className="mb-3 mt-6 text-xs font-bold uppercase tracking-widest text-sub">
         Here&apos;s what matters today
       </h2>
+
+      {needsAi && <AiBriefRefresher />}
 
       {brief.length === 0 && (
         <div className="rounded-2xl border border-line p-5 text-center text-sm text-sub shadow-sm">
@@ -84,6 +113,7 @@ export default async function TodayPage() {
       )}
 
       <div className="space-y-3">
+        <FollowupCard />
         {brief.map((b, i) => (
           <BriefCard key={i} item={b} />
         ))}

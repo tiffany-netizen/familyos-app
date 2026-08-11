@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { openTableUrl } from "@/lib/brief";
 
 const FALLBACK: Record<string, { name: string; dist: string }[]> = {
   Cheap: [
@@ -115,10 +117,25 @@ export function DateNightCard({ spouseName }: { spouseName: string }) {
           </p>
 
           {booked ? (
-            <p className="mt-2.5 text-[13px] font-semibold text-brand">
-              ✓ {booked} it is. Real booking arrives in a later update, so lock
-              it in the old-fashioned way for now.
-            </p>
+            <div className="mt-2.5">
+              <p className="text-[13px] font-semibold text-brand">
+                ✓ {booked} it is.
+              </p>
+              <a
+                href={openTableUrl(booked)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block rounded-lg bg-brand px-3.5 py-2 text-[13px] font-semibold text-white"
+              >
+                Check tables on OpenTable ›
+              </a>
+              <button
+                onClick={() => setBooked(null)}
+                className="ml-2 text-[13px] font-semibold text-sub"
+              >
+                Pick another
+              </button>
+            </div>
           ) : (
             <>
               {locState === "idle" && (
@@ -224,12 +241,20 @@ export function CheckinCard() {
           Sundays, update your week: school runs, dinner nights, what&apos;s
           coming.
         </p>
-        <button
-          onClick={() => window.dispatchEvent(new Event("open-memory"))}
-          className="mt-3 rounded-lg bg-brand px-3.5 py-2 text-[13px] font-semibold text-white"
-        >
-          Tell me something
-        </button>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => window.dispatchEvent(new Event("open-memory"))}
+            className="rounded-lg bg-brand px-3.5 py-2 text-[13px] font-semibold text-white"
+          >
+            Tell me something
+          </button>
+          <Link
+            href="/weekly"
+            className="rounded-lg bg-blue-soft px-3.5 py-2 text-[13px] font-semibold text-blue-ink"
+          >
+            Update my week
+          </Link>
+        </div>
       </div>
     </div>
   );

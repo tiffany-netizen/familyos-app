@@ -101,10 +101,46 @@ export default function MemoryCapture({
     setListening(true);
   }
 
+  function finishSave(msg: string) {
+    setNote(msg);
+    setText("");
+    setBusy(false);
+    router.refresh();
+    setTimeout(() => {
+      setNote(null);
+      setOpen(false);
+    }, 3200);
+  }
+
   async function save() {
     const body = text.trim();
     if (!body) return;
     setBusy(true);
+
+    // AI filing first: handles many people in one note, no names, and
+    // smarter categories. Falls back to the local splitter below.
+    try {
+      const res = await fetch("/api/ai/memory", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: body }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.source === "ai" && data.filings?.length) {
+          const filings = (data.filings as { person: string; filedAs: string }[]).map(
+            (f) => `${f.person} → ${f.filedAs}`
+          );
+          finishSave(
+            filings.length > 1
+              ? `Split into ${filings.length}: ${filings.join(" · ")}`
+              : `Filed under ${filings[0]}.`
+          );
+          return;
+        }
+      }
+    } catch {}
+
     const supabase = createClient();
     const {
       data: { user },
@@ -138,18 +174,11 @@ export default function MemoryCapture({
       );
     }
 
-    setNote(
+    finishSave(
       segments.length > 1
         ? `Split into ${segments.length}: ${filings.join(" · ")}`
         : `Filed under ${filings[0]}.`
     );
-    setText("");
-    setBusy(false);
-    router.refresh();
-    setTimeout(() => {
-      setNote(null);
-      setOpen(false);
-    }, 3200);
   }
 
   return (

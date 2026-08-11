@@ -76,7 +76,15 @@ export default async function DigestPage() {
       <Link href="/today" className="text-sm font-semibold text-sub">
         ‹ Today
       </Link>
-      <h1 className="mt-2 text-2xl font-bold">The week ahead</h1>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">The week ahead</h1>
+        <Link
+          href="/weekly"
+          className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
+        >
+          Update my week ›
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-sub">
         Your Sunday digest, built from everything FamilyOS knows.
       </p>
@@ -100,7 +108,7 @@ export default async function DigestPage() {
         ))}
       </div>
 
-      <UploadSchedule childName={child?.name ?? null} />
+      <UploadSchedule childName={child?.name ?? null} personId={child?.id ?? null} />
       <BottomNav />
     </main>
   );

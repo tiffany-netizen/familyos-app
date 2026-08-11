@@ -14,6 +14,11 @@ const TABLES = [
   "home_items",
   "service_providers",
   "vehicles",
+  "routines",
+  "todos",
+  "trips",
+  "followups",
+  "briefs",
   "people",
 ];
 

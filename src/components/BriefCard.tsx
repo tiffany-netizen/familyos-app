@@ -52,10 +52,16 @@ export default function BriefCard({ item }: { item: BriefItem }) {
           item.actions.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {item.actions.map((a) =>
-                a.kind === "sms" ? (
+                a.kind === "sms" || a.kind === "link" ? (
                   <a
                     key={a.label}
-                    href={`sms:?&body=${encodeURIComponent(a.payload ?? "")}`}
+                    href={
+                      a.kind === "sms"
+                        ? `sms:?&body=${encodeURIComponent(a.payload ?? "")}`
+                        : a.href ?? "#"
+                    }
+                    target={a.kind === "link" ? "_blank" : undefined}
+                    rel={a.kind === "link" ? "noreferrer" : undefined}
                     className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold ${
                       a.primary
                         ? "bg-brand text-white"
