@@ -28,6 +28,14 @@ const PRICEY_CUISINES = ["french", "japanese", "steak", "steak_house", "seafood"
 
 type Spot = { name: string; dist: string; tier: string };
 
+// "412 Maple Ave, Montclair, NJ" -> "Montclair"; "Montclair, NJ" -> "Montclair"
+function cityOf(addr: string): string {
+  const parts = addr.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length >= 3) return parts[parts.length - 2];
+  if (parts.length === 2) return parts[0];
+  return addr.trim();
+}
+
 function miles(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 3958.8;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -131,7 +139,7 @@ export function DateNightCard({
             husband ·{" "}
             {locState === "live"
               ? homeCity && homeCity.trim()
-                ? `restaurants near ${homeCity.trim()}`
+                ? `restaurants near ${cityOf(homeCity)}`
                 : "restaurants near you"
               : locState === "fallback"
                 ? "sample list (location unavailable)"
@@ -166,7 +174,7 @@ export function DateNightCard({
                   onClick={useLocation}
                   className="mt-3 rounded-lg bg-blue-soft px-3.5 py-2 text-[13px] font-semibold text-blue-ink"
                 >
-                  📍 {homeCity && homeCity.trim() ? `Find restaurants in ${homeCity.trim()}` : "Find restaurants near me"}
+                  📍 {homeCity && homeCity.trim() ? `Find restaurants near home (${cityOf(homeCity)})` : "Find restaurants near me"}
                 </button>
               )}
               {locState === "finding" && (

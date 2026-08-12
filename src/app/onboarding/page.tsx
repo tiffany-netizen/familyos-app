@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -126,7 +126,12 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Step 0: spouse
+  // Step 0: about you
+  const [yourName, setYourName] = useState("");
+  const [yourBirthday, setYourBirthday] = useState("");
+  const [homeCity, setHomeCity] = useState("");
+
+  // Step 1: spouse
   const [married, setMarried] = useState(true);
   const [spouseName, setSpouseName] = useState("");
   const [spouseBirthday, setSpouseBirthday] = useState("");
@@ -138,14 +143,30 @@ export default function Onboarding() {
   const [stressNote, setStressNote] = useState("");
   const [sweetText, setSweetText] = useState(true);
 
-  // Step 1: kids + sitter
+  // Prefill your name from signup
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.full_name) setYourName((v) => v || data.full_name);
+        });
+    });
+  }, []);
+
+  // Step 2: kids + sitter
   const [kidCount, setKidCount] = useState(0);
   const [kids, setKids] = useState<Kid[]>([]);
   const [kidIndex, setKidIndex] = useState(0);
   const [sitterName, setSitterName] = useState("");
   const [sitterSched, setSitterSched] = useState("");
 
-  // Step 2: parents & pets
+  // Step 3: parents & pets
   const [trackParents, setTrackParents] = useState(true);
   const [momName, setMomName] = useState("");
   const [momBirthday, setMomBirthday] = useState("");
@@ -154,14 +175,14 @@ export default function Onboarding() {
   const [petName, setPetName] = useState("");
   const [petKind, setPetKind] = useState("");
 
-  // Step 3: reminders
+  // Step 4: reminders
   const [holidays, setHolidays] = useState<string[]>(
     HOLIDAYS.map((h) => h.label)
   );
   const [dateNightDays, setDateNightDays] = useState(14);
   const [giftLists, setGiftLists] = useState(true);
 
-  // Step 4: your week
+  // Step 5: your week
   const [schoolDays, setSchoolDays] = useState<number[]>([]);
   const [dinnerDays, setDinnerDays] = useState<number[]>([]);
   const [weekExtras, setWeekExtras] = useState("");
@@ -176,7 +197,7 @@ export default function Onboarding() {
     setKidIndex(0);
   }
 
-  const steps = ["You", "Kids", "Family", "Reminders", "Your week"];
+  const steps = ["You", "Partner", "Kids", "Family", "Reminders", "Your week"];
   const kidStepDone = kidCount === 0 || kidIndex >= kidCount - 1;
 
   async function finish() {
@@ -347,6 +368,9 @@ export default function Onboarding() {
         .from("profiles")
         .update({
           onboarded: true,
+          ...(yourName.trim() ? { full_name: yourName.trim() } : {}),
+          birthday: yourBirthday || null,
+          home_address: homeCity.trim() || null,
           date_night_frequency_days: dateNightDays,
           wants_gift_lists: giftLists,
           sweet_text_optin: married ? sweetText : false,
@@ -378,6 +402,33 @@ export default function Onboarding() {
       {step === 0 && (
         <section className="flex flex-1 flex-col">
           <h1 className="mb-1 text-2xl font-bold">First, about you</h1>
+          <p className="mb-5 text-sub">
+            So your brief sounds like it was written for you, tell us a little
+            about yourself.
+          </p>
+          <div className="space-y-4">
+            <Field label="Your name" value={yourName} onChange={setYourName} placeholder="Jamie" />
+            <Field label="Your birthday" type="date" value={yourBirthday} onChange={setYourBirthday} />
+            <Field
+              label="Home address"
+              value={homeCity}
+              onChange={setHomeCity}
+              placeholder="412 Maple Ave, Montclair, NJ"
+            />
+            <p className="text-[13px] text-sub">
+              Used to suggest restaurants, sitters, and plans near you. Never
+              shared.
+            </p>
+          </div>
+          <button onClick={() => setStep(1)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
+            Next
+          </button>
+        </section>
+      )}
+
+      {step === 1 && (
+        <section className="flex flex-1 flex-col">
+          <h1 className="mb-1 text-2xl font-bold">Your partner</h1>
           <p className="mb-5 text-sub">Are you married or partnered?</p>
           <div className="mb-4 flex gap-2">
             <Chip on={married} onClick={() => setMarried(true)}>Yes</Chip>
@@ -425,13 +476,13 @@ export default function Onboarding() {
               <Field label="Other dates to track (comma separated)" value={customDates} onChange={setCustomDates} placeholder="First date, proposal day" />
             </div>
           )}
-          <button onClick={() => setStep(1)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
+          <button onClick={() => setStep(2)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
             Next
           </button>
         </section>
       )}
 
-      {step === 1 && (
+      {step === 2 && (
         <section className="flex flex-1 flex-col">
           <h1 className="mb-1 text-2xl font-bold">Your kids</h1>
           <p className="mb-5 text-sub">How many kids do you have?</p>
@@ -479,7 +530,7 @@ export default function Onboarding() {
               </button>
             )}
             <button
-              onClick={() => (kidStepDone ? setStep(2) : setKidIndex(kidIndex + 1))}
+              onClick={() => (kidStepDone ? setStep(3) : setKidIndex(kidIndex + 1))}
               className="flex-1 rounded-xl bg-brand py-4 font-semibold text-white"
             >
               {kidStepDone ? "Next" : `Next: kid #${kidIndex + 2}`}
@@ -488,7 +539,7 @@ export default function Onboarding() {
         </section>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <section className="flex flex-1 flex-col">
           <h1 className="mb-1 text-2xl font-bold">Parents and pets</h1>
           <p className="mb-5 text-sub">
@@ -516,13 +567,13 @@ export default function Onboarding() {
               <Field label="What kind?" value={petKind} onChange={setPetKind} placeholder="Golden retriever" />
             </div>
           </div>
-          <button onClick={() => setStep(3)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
+          <button onClick={() => setStep(4)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
             Next
           </button>
         </section>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <section className="flex flex-1 flex-col">
           <h1 className="mb-1 text-2xl font-bold">Reminders, your way</h1>
           <p className="mb-5 text-sub">
@@ -566,13 +617,13 @@ export default function Onboarding() {
             <Chip on={giftLists} onClick={() => setGiftLists(true)}>Yes please</Chip>
             <Chip on={!giftLists} onClick={() => setGiftLists(false)}>No</Chip>
           </div>
-          <button onClick={() => setStep(4)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
+          <button onClick={() => setStep(5)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
             Next
           </button>
         </section>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <section className="flex flex-1 flex-col">
           <h1 className="mb-1 text-2xl font-bold">Your week</h1>
           <p className="mb-5 text-sub">
