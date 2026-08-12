@@ -102,6 +102,12 @@ export default async function TodayPage() {
         <h1 className="text-2xl font-bold">Good morning, {firstName}</h1>
         <div className="flex items-center gap-3">
           <Link
+            href="/profile"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
+          >
+            👤
+          </Link>
+          <Link
             href="/digest"
             className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
           >
