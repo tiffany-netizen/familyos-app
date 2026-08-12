@@ -49,6 +49,7 @@ export type BriefItem = {
   meta: string;
   role: string;
   key?: string;
+  until?: string; // "HH:MM" local; the feed hides the card after this time
   actions?: BriefAction[];
 };
 
@@ -103,7 +104,8 @@ export function buildBrief(
         text: "School run today. You're on drop-off / pick-up duty.",
         meta: "dad · today's checklist",
         role: "dad",
-        actions: [{ label: "Got it", kind: "confirm", payload: "Checked off for today.", primary: true }],
+        key: "school-run",
+        until: "16:00",
       });
     } else if (r.kind === "dinner") {
       items.push({
@@ -111,6 +113,8 @@ export function buildBrief(
         text: "Dinner's on you tonight. Recipe or groceries?",
         meta: "home · today's checklist",
         role: "home",
+        key: "dinner",
+        until: "20:00",
         actions: [
           {
             label: "Recipe ideas",
@@ -133,7 +137,7 @@ export function buildBrief(
         text: `${r.label ?? "Weekend activity"} today${time ? ` at ${time}` : ""}.`,
         meta: "family · your week",
         role: "dad",
-        actions: [{ label: "Got it", kind: "confirm", payload: "On the radar.", primary: true }],
+        until: time && /^\d{2}:\d{2}$/.test(time) ? time : undefined,
       });
     }
   }
