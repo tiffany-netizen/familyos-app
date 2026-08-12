@@ -7,7 +7,7 @@ import FollowupCard from "@/components/FollowupCard";
 import MemoryCapture from "@/components/MemoryCapture";
 import SignOutButton from "@/components/SignOutButton";
 import BottomNav from "@/components/BottomNav";
-import BriefCard from "@/components/BriefCard";
+import BriefFeed from "@/components/BriefFeed";
 import Link from "next/link";
 import {
   DateNightCard,
@@ -135,9 +135,7 @@ export default async function TodayPage() {
       )}
 
       <div className="space-y-3">
-        {sortedBrief.map((b, i) => (
-          <BriefCard key={i} item={b} />
-        ))}
+        <BriefFeed items={sortedBrief} />
         <FollowupCard />
         {(() => {
           const spouse = (people ?? []).find((p) => p.relationship === "spouse");
