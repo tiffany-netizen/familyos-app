@@ -108,7 +108,7 @@ export function buildBrief(
     } else if (r.kind === "dinner") {
       items.push({
         icon: "🍳",
-        text: "Dinner's on you tonight. Want a hand with the menu?",
+        text: "Dinner's on you tonight. Recipe or groceries?",
         meta: "home · today's checklist",
         role: "home",
         actions: [
@@ -123,7 +123,7 @@ export function buildBrief(
             kind: "link",
             href: "https://www.instacart.com/store",
           },
-          { label: "Got it", kind: "confirm", payload: "Checked off. Bon appétit." },
+          { label: "Got it", kind: "confirm", payload: "Checked off." },
         ],
       });
     } else {
