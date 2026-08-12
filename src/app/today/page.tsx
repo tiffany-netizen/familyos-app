@@ -68,6 +68,17 @@ export default async function TodayPage() {
           profile,
           trips ?? []
         );
+  const ROLE_ORDER: Record<string, number> = {
+    dad: 0,
+    husband: 1,
+    personal: 2,
+    son: 3,
+    friend: 4,
+    home: 5,
+  };
+  const sortedBrief = [...brief].sort(
+    (a, b) => (ROLE_ORDER[a.role] ?? 6) - (ROLE_ORDER[b.role] ?? 6)
+  );
   const intro = aiItems && aiItems.length ? cachedBrief?.intro : null;
   const needsAi = aiEnabled() && !(aiItems && aiItems.length);
   const todoCount = (openTodos ?? []).length;
@@ -114,7 +125,7 @@ export default async function TodayPage() {
       )}
 
       <div className="space-y-3">
-        {brief.map((b, i) => (
+        {sortedBrief.map((b, i) => (
           <BriefCard key={i} item={b} />
         ))}
         <FollowupCard />
@@ -134,7 +145,6 @@ export default async function TodayPage() {
             <span className="text-sm font-semibold text-blue-ink">View ›</span>
           </Link>
         )}
-        <HealthCard />
         <CheckinCard />
       </div>
 
@@ -160,6 +170,18 @@ export default async function TodayPage() {
       )}
 
       <FeedbackCard />
+
+      <h2 className="mb-3 mt-8 text-xs font-bold uppercase tracking-widest text-sub">
+        Coming soon
+      </h2>
+      <div className="space-y-3">
+        <HealthCard />
+        <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
+          🍳 <b>Recipe box + shopping list.</b> Save favorite recipes, tap
+          ingredients onto a shopping list, and get dinner ideas that skip what
+          the kids won&apos;t eat.
+        </div>
+      </div>
 
       <div className="mt-8">
         <ReferralCard />
