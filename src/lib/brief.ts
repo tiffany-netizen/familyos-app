@@ -36,7 +36,7 @@ export type Trip = {
 
 export type BriefAction = {
   label: string;
-  kind: "confirm" | "we_talked" | "sms" | "link";
+  kind: "confirm" | "we_talked" | "sms" | "link" | "snooze" | "dismiss";
   payload?: string;
   href?: string;
   personId?: string;
@@ -48,6 +48,7 @@ export type BriefItem = {
   text: string;
   meta: string;
   role: string;
+  key?: string;
   actions?: BriefAction[];
 };
 
@@ -107,7 +108,7 @@ export function buildBrief(
     } else if (r.kind === "dinner") {
       items.push({
         icon: "🍳",
-        text: "Dinner's on you tonight. Want a hand with the menu?",
+        text: "Dinner's on you tonight. Recipe or groceries?",
         meta: "home · today's checklist",
         role: "home",
         actions: [
@@ -122,7 +123,7 @@ export function buildBrief(
             kind: "link",
             href: "https://www.instacart.com/store",
           },
-          { label: "Got it", kind: "confirm", payload: "Checked off. Bon appétit." },
+          { label: "Got it", kind: "confirm", payload: "Checked off." },
         ],
       });
     } else {
