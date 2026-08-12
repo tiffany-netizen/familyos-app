@@ -90,8 +90,8 @@ export default function BriefCard({ item }: { item: BriefItem }) {
                         ? `sms:?&body=${encodeURIComponent(a.payload ?? "")}`
                         : a.href ?? "#"
                     }
-                    target={a.kind === "link" ? "_blank" : undefined}
-                    rel={a.kind === "link" ? "noreferrer" : undefined}
+                    target={a.kind === "link" && a.href?.startsWith("https") ? "_blank" : undefined}
+                    rel={a.kind === "link" && a.href?.startsWith("https") ? "noreferrer" : undefined}
                     className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold ${
                       a.primary
                         ? "bg-brand text-white"

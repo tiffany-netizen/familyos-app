@@ -78,9 +78,11 @@ function DayChips({
 export default function WeeklyUpdate({
   routines,
   trips,
+  hasKids = true,
 }: {
   routines: Routine[];
   trips: TripRow[];
+  hasKids?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -234,12 +236,14 @@ export default function WeeklyUpdate({
 
   return (
     <div className="space-y-7">
-      <div>
-        <p className="mb-2 text-sm font-semibold">
-          School drop-off / pick-up days
-        </p>
-        <DayChips days={schoolDays} setDays={setSchoolDays} set={WEEKDAYS} />
-      </div>
+      {hasKids && (
+        <div>
+          <p className="mb-2 text-sm font-semibold">
+            School drop-off / pick-up days
+          </p>
+          <DayChips days={schoolDays} setDays={setSchoolDays} set={WEEKDAYS} />
+        </div>
+      )}
 
       <div>
         <p className="mb-2 text-sm font-semibold">Dinner duty nights</p>
