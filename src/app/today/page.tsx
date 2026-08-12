@@ -16,6 +16,7 @@ import {
   ReferralCard,
 } from "@/components/DemoCards";
 import ClearData from "@/components/ClearData";
+import FeedbackCard from "@/components/FeedbackCard";
 
 export default async function TodayPage() {
   const supabase = await createClient();
@@ -113,10 +114,10 @@ export default async function TodayPage() {
       )}
 
       <div className="space-y-3">
-        <FollowupCard />
         {brief.map((b, i) => (
           <BriefCard key={i} item={b} />
         ))}
+        <FollowupCard />
         {(() => {
           const spouse = (people ?? []).find((p) => p.relationship === "spouse");
           return spouse ? <DateNightCard spouseName={spouse.name} /> : null;
@@ -157,6 +158,8 @@ export default async function TodayPage() {
           ))}
         </div>
       )}
+
+      <FeedbackCard />
 
       <div className="mt-8">
         <ReferralCard />

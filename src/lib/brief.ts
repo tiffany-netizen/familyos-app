@@ -36,7 +36,7 @@ export type Trip = {
 
 export type BriefAction = {
   label: string;
-  kind: "confirm" | "we_talked" | "sms" | "link";
+  kind: "confirm" | "we_talked" | "sms" | "link" | "snooze" | "dismiss";
   payload?: string;
   href?: string;
   personId?: string;
@@ -48,6 +48,7 @@ export type BriefItem = {
   text: string;
   meta: string;
   role: string;
+  key?: string;
   actions?: BriefAction[];
 };
 

@@ -213,6 +213,15 @@ export default function WeeklyUpdate({
         if (eTodo) throw eTodo;
       }
 
+      // The week changed, so today's cached brief is stale. Toss it; the
+      // Today page rebuilds instantly and the AI rewrites it in the background.
+      const todayStr = new Date().toISOString().slice(0, 10);
+      await supabase
+        .from("briefs")
+        .delete()
+        .eq("owner_id", user.id)
+        .eq("brief_date", todayStr);
+
       setSaved(true);
       setBusy(false);
       router.refresh();

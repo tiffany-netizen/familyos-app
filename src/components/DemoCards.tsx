@@ -1,5 +1,6 @@
 "use client";
 
+import DateNightPlanner from "@/components/DateNightPlanner";
 import { useState } from "react";
 import Link from "next/link";
 import { openTableUrl } from "@/lib/brief";
@@ -116,6 +117,7 @@ export function DateNightCard({ spouseName }: { spouseName: string }) {
                 : "standing priority"}
           </p>
 
+          <DateNightPlanner />
           {booked ? (
             <div className="mt-2.5">
               <p className="text-[13px] font-semibold text-brand">

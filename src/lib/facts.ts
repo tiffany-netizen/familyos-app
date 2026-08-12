@@ -23,6 +23,9 @@ export type Facts = {
   recent_memories: Record<string, unknown>[];
   gift_ideas: Record<string, unknown>[];
   answered_followups: Record<string, unknown>[];
+  service_providers: Record<string, unknown>[];
+  suppressed_keys: string[];
+  recent_sms_drafts: string[];
 };
 
 const PERSON_COLS =
@@ -45,6 +48,9 @@ export async function gatherFacts(
     { data: memories },
     { data: gifts },
     { data: followups },
+    { data: providers },
+    { data: cardStates },
+    { data: recentBriefs },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -95,7 +101,40 @@ export async function gatherFacts(
       .select("kind,subject,question,answer")
       .eq("owner_id", userId)
       .eq("status", "answered"),
+    supabase
+      .from("service_providers")
+      .select("name,kind,contact_info,schedule_note,next_visit")
+      .eq("owner_id", userId),
+    supabase
+      .from("card_states")
+      .select("card_key,status,until")
+      .eq("owner_id", userId),
+    supabase
+      .from("briefs")
+      .select("items,brief_date")
+      .eq("owner_id", userId)
+      .gte(
+        "brief_date",
+        new Date(now.getTime() - 14 * 86400000).toISOString().slice(0, 10)
+      )
+      .order("brief_date", { ascending: false })
+      .limit(14),
   ]);
+
+  const todayStr = now.toISOString().slice(0, 10);
+  const suppressed = (cardStates ?? [])
+    .filter((c) => !c.until || (c.until as string) >= todayStr)
+    .map((c) => c.card_key as string);
+
+  const smsDrafts: string[] = [];
+  for (const b of recentBriefs ?? []) {
+    const items = (b.items ?? []) as { actions?: { kind?: string; payload?: string }[] }[];
+    for (const it of items) {
+      for (const a of it.actions ?? []) {
+        if (a?.kind === "sms" && typeof a.payload === "string") smsDrafts.push(a.payload);
+      }
+    }
+  }
 
   return {
     today: now.toISOString().slice(0, 10),
@@ -116,5 +155,8 @@ export async function gatherFacts(
     recent_memories: memories ?? [],
     gift_ideas: gifts ?? [],
     answered_followups: followups ?? [],
+    service_providers: providers ?? [],
+    suppressed_keys: suppressed,
+    recent_sms_drafts: smsDrafts.slice(0, 20),
   };
 }
