@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AddressField from "@/components/AddressField";
 
 type Kid = {
   name: string;
@@ -409,11 +410,12 @@ export default function Onboarding() {
           <div className="space-y-4">
             <Field label="Your name" value={yourName} onChange={setYourName} placeholder="Jamie" />
             <Field label="Your birthday" type="date" value={yourBirthday} onChange={setYourBirthday} />
-            <Field
-              label="City or town you live in"
+            <AddressField
+              label="Home address"
               value={homeCity}
               onChange={setHomeCity}
-              placeholder="Montclair, NJ"
+              placeholder="Start typing your address..."
+              hint="Pick from the suggestions. Used for restaurants, sitters, and plans near you. Never shared."
             />
           </div>
           <button onClick={() => setStep(1)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
@@ -628,12 +630,14 @@ export default function Onboarding() {
             update it for the week ahead.
           </p>
           <div className="space-y-5">
-            <div>
-              <span className="mb-2 block text-sm font-semibold">
-                What days are you picking up or dropping kids at school?
-              </span>
-              <DayPicker days={schoolDays} setDays={setSchoolDays} />
-            </div>
+            {kidCount > 0 && (
+              <div>
+                <span className="mb-2 block text-sm font-semibold">
+                  What days are you picking up or dropping kids at school?
+                </span>
+                <DayPicker days={schoolDays} setDays={setSchoolDays} />
+              </div>
+            )}
             <div>
               <span className="mb-2 block text-sm font-semibold">
                 What days do you need to make dinner?
