@@ -79,6 +79,10 @@ export default async function TodayPage() {
   const sortedBrief = [...brief].sort(
     (a, b) => (ROLE_ORDER[a.role] ?? 6) - (ROLE_ORDER[b.role] ?? 6)
   );
+  // Gift radar is a gentle footnote; keep it at the very bottom of the feed.
+  sortedBrief.sort(
+    (a, b) => (a.key === "gift-radar" ? 1 : 0) - (b.key === "gift-radar" ? 1 : 0)
+  );
   const intro = aiItems && aiItems.length ? cachedBrief?.intro : null;
   const needsAi = aiEnabled() && !(aiItems && aiItems.length);
   const todoCount = (openTodos ?? []).length;
@@ -97,6 +101,12 @@ export default async function TodayPage() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Good morning, {firstName}</h1>
         <div className="flex items-center gap-3">
+          <Link
+            href="/profile"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
+          >
+            👤
+          </Link>
           <Link
             href="/digest"
             className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
@@ -131,7 +141,12 @@ export default async function TodayPage() {
         <FollowupCard />
         {(() => {
           const spouse = (people ?? []).find((p) => p.relationship === "spouse");
-          return spouse ? <DateNightCard spouseName={spouse.name} /> : null;
+          return spouse ? (
+            <DateNightCard
+              spouseName={spouse.name}
+              homeCity={profile?.home_address ?? null}
+            />
+          ) : null;
         })()}
         {todoCount > 0 && (
           <Link
@@ -180,6 +195,11 @@ export default async function TodayPage() {
           🍳 <b>Recipe box + shopping list.</b> Save favorite recipes, tap
           ingredients onto a shopping list, and get dinner ideas that skip what
           the kids won&apos;t eat.
+        </div>
+        <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
+          🔌 <b>Connect your AI.</b> Link the assistant you already use
+          (ChatGPT, Claude) so FamilyOS can plan with the context it has about
+          your life, and vice versa.
         </div>
       </div>
 
