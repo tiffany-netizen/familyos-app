@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AddressField from "@/components/AddressField";
 
 type Kid = {
   name: string;
@@ -409,16 +410,13 @@ export default function Onboarding() {
           <div className="space-y-4">
             <Field label="Your name" value={yourName} onChange={setYourName} placeholder="Jamie" />
             <Field label="Your birthday" type="date" value={yourBirthday} onChange={setYourBirthday} />
-            <Field
+            <AddressField
               label="Home address"
               value={homeCity}
               onChange={setHomeCity}
-              placeholder="412 Maple Ave, Montclair, NJ"
+              placeholder="Start typing your address..."
+              hint="Pick from the suggestions. Used for restaurants, sitters, and plans near you. Never shared."
             />
-            <p className="text-[13px] text-sub">
-              Used to suggest restaurants, sitters, and plans near you. Never
-              shared.
-            </p>
           </div>
           <button onClick={() => setStep(1)} className="mt-auto w-full rounded-xl bg-brand py-4 font-semibold text-white">
             Next

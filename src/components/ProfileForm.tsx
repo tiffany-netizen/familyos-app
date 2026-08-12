@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import AddressField from "@/components/AddressField";
 
 type Profile = {
   full_name: string | null;
@@ -120,21 +121,13 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         />
       </label>
 
-      <label className="block">
-        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
-          Home address
-        </span>
-        <input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          placeholder="412 Maple Ave, Montclair, NJ"
-          className="w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
-        />
-        <p className="mt-1.5 text-[13px] text-sub">
-          Used to suggest restaurants, sitters, and plans near you. Never
-          shared.
-        </p>
-      </label>
+      <AddressField
+        label="Home address"
+        value={address}
+        onChange={setAddress}
+        placeholder="Start typing your address..."
+        hint="Pick from the suggestions. Used for restaurants, sitters, and plans near you. Never shared."
+      />
 
       <div>
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
