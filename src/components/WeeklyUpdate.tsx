@@ -78,9 +78,11 @@ function DayChips({
 export default function WeeklyUpdate({
   routines,
   trips,
+  hasKids = true,
 }: {
   routines: Routine[];
   trips: TripRow[];
+  hasKids?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -213,6 +215,15 @@ export default function WeeklyUpdate({
         if (eTodo) throw eTodo;
       }
 
+      // The week changed, so today's cached brief is stale. Toss it; the
+      // Today page rebuilds instantly and the AI rewrites it in the background.
+      const todayStr = new Date().toISOString().slice(0, 10);
+      await supabase
+        .from("briefs")
+        .delete()
+        .eq("owner_id", user.id)
+        .eq("brief_date", todayStr);
+
       setSaved(true);
       setBusy(false);
       router.refresh();
@@ -225,12 +236,14 @@ export default function WeeklyUpdate({
 
   return (
     <div className="space-y-7">
-      <div>
-        <p className="mb-2 text-sm font-semibold">
-          School drop-off / pick-up days
-        </p>
-        <DayChips days={schoolDays} setDays={setSchoolDays} set={WEEKDAYS} />
-      </div>
+      {hasKids && (
+        <div>
+          <p className="mb-2 text-sm font-semibold">
+            School drop-off / pick-up days
+          </p>
+          <DayChips days={schoolDays} setDays={setSchoolDays} set={WEEKDAYS} />
+        </div>
+      )}
 
       <div>
         <p className="mb-2 text-sm font-semibold">Dinner duty nights</p>

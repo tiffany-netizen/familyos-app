@@ -12,7 +12,7 @@ export default async function WeeklyPage() {
   if (!user) redirect("/login");
 
   const today = new Date().toISOString().slice(0, 10);
-  const [{ data: routines }, { data: trips }] = await Promise.all([
+  const [{ data: routines }, { data: trips }, { data: kids }] = await Promise.all([
     supabase
       .from("routines")
       .select("id,kind,label,days,day_times,notify")
@@ -22,6 +22,7 @@ export default async function WeeklyPage() {
       .select("id,kind,destination,start_date,end_date")
       .or(`end_date.gte.${today},end_date.is.null`)
       .order("start_date"),
+    supabase.from("people").select("id").eq("relationship", "child").limit(1),
   ]);
 
   return (
@@ -35,7 +36,11 @@ export default async function WeeklyPage() {
         rhythm, add the extras, and I'll handle the remembering.
       </p>
 
-      <WeeklyUpdate routines={routines ?? []} trips={trips ?? []} />
+      <WeeklyUpdate
+        routines={routines ?? []}
+        trips={trips ?? []}
+        hasKids={(kids ?? []).length > 0}
+      />
       <BottomNav />
     </main>
   );

@@ -632,12 +632,14 @@ export default function Onboarding() {
             update it for the week ahead.
           </p>
           <div className="space-y-5">
-            <div>
-              <span className="mb-2 block text-sm font-semibold">
-                What days are you picking up or dropping kids at school?
-              </span>
-              <DayPicker days={schoolDays} setDays={setSchoolDays} />
-            </div>
+            {kidCount > 0 && (
+              <div>
+                <span className="mb-2 block text-sm font-semibold">
+                  What days are you picking up or dropping kids at school?
+                </span>
+                <DayPicker days={schoolDays} setDays={setSchoolDays} />
+              </div>
+            )}
             <div>
               <span className="mb-2 block text-sm font-semibold">
                 What days do you need to make dinner?
