@@ -1,5 +1,6 @@
 "use client";
 
+import DateNightPlanner from "@/components/DateNightPlanner";
 import { useState } from "react";
 import Link from "next/link";
 import { openTableUrl } from "@/lib/brief";
@@ -39,7 +40,13 @@ function miles(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export function DateNightCard({ spouseName }: { spouseName: string }) {
+export function DateNightCard({
+  spouseName,
+  homeCity,
+}: {
+  spouseName: string;
+  homeCity?: string | null;
+}) {
   const [tier, setTier] = useState<string | null>(null);
   const [booked, setBooked] = useState<string | null>(null);
   const [spots, setSpots] = useState<Spot[] | null>(null);
@@ -48,13 +55,26 @@ export function DateNightCard({ spouseName }: { spouseName: string }) {
   async function useLocation() {
     setLocState("finding");
     try {
-      const pos = await new Promise<GeolocationPosition>((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, {
-          timeout: 10000,
-          maximumAge: 300000,
-        })
-      );
-      const { latitude: lat, longitude: lon } = pos.coords;
+      let lat: number;
+      let lon: number;
+      // The home town from onboarding wins; browser location is the fallback.
+      if (homeCity && homeCity.trim()) {
+        const geo = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(homeCity.trim())}`
+        ).then((r) => r.json());
+        if (!geo?.[0]) throw new Error("geocode");
+        lat = parseFloat(geo[0].lat);
+        lon = parseFloat(geo[0].lon);
+      } else {
+        const pos = await new Promise<GeolocationPosition>((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, {
+            timeout: 10000,
+            maximumAge: 300000,
+          })
+        );
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
+      }
       const q = `[out:json][timeout:10];(node[amenity~"restaurant|fast_food"][name](around:5000,${lat},${lon}););out body 80;`;
       const r = await fetch("https://overpass-api.de/api/interpreter", {
         method: "POST",
@@ -110,12 +130,15 @@ export function DateNightCard({ spouseName }: { spouseName: string }) {
           <p className="mt-1 text-xs text-sub">
             husband ·{" "}
             {locState === "live"
-              ? "restaurants near you"
+              ? homeCity && homeCity.trim()
+                ? `restaurants near ${homeCity.trim()}`
+                : "restaurants near you"
               : locState === "fallback"
                 ? "sample list (location unavailable)"
                 : "standing priority"}
           </p>
 
+          <DateNightPlanner />
           {booked ? (
             <div className="mt-2.5">
               <p className="text-[13px] font-semibold text-brand">
@@ -143,7 +166,7 @@ export function DateNightCard({ spouseName }: { spouseName: string }) {
                   onClick={useLocation}
                   className="mt-3 rounded-lg bg-blue-soft px-3.5 py-2 text-[13px] font-semibold text-blue-ink"
                 >
-                  📍 Find restaurants near me
+                  📍 {homeCity && homeCity.trim() ? `Find restaurants in ${homeCity.trim()}` : "Find restaurants near me"}
                 </button>
               )}
               {locState === "finding" && (

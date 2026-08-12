@@ -15,6 +15,36 @@ export default function BriefCard({ item }: { item: BriefItem }) {
       setNote(a.payload ?? "Done.");
       return;
     }
+    if (a.kind === "snooze" || a.kind === "dismiss") {
+      setBusy(true);
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const days =
+        a.kind === "snooze" ? parseInt(a.payload ?? "14", 10) || 14 : 45;
+      const until = new Date(Date.now() + days * 86400000)
+        .toISOString()
+        .slice(0, 10);
+      const key = item.key ?? `card:${item.text.slice(0, 40)}`;
+      await supabase.from("card_states").upsert(
+        {
+          owner_id: user.id,
+          card_key: key,
+          status: a.kind === "snooze" ? "snoozed" : "dismissed",
+          until,
+        },
+        { onConflict: "owner_id,card_key" }
+      );
+      setBusy(false);
+      setNote(
+        a.kind === "snooze"
+          ? `Snoozed. Back on your radar ${new Date(until + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}.`
+          : "Marked under control. I'll stay out of it."
+      );
+      return;
+    }
     if (a.kind === "we_talked" && a.personId) {
       setBusy(true);
       const supabase = createClient();
@@ -60,8 +90,8 @@ export default function BriefCard({ item }: { item: BriefItem }) {
                         ? `sms:?&body=${encodeURIComponent(a.payload ?? "")}`
                         : a.href ?? "#"
                     }
-                    target={a.kind === "link" ? "_blank" : undefined}
-                    rel={a.kind === "link" ? "noreferrer" : undefined}
+                    target={a.kind === "link" && a.href?.startsWith("https") ? "_blank" : undefined}
+                    rel={a.kind === "link" && a.href?.startsWith("https") ? "noreferrer" : undefined}
                     className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold ${
                       a.primary
                         ? "bg-brand text-white"
