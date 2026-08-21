@@ -533,7 +533,7 @@ export default function Onboarding() {
       {screen === "birthday" && (
         <section className="flex flex-1 flex-col pt-4">
           <h1 className="mb-1 text-2xl font-bold">When's your birthday?</h1>
-          <p className="mb-5 text-sub">So it never sneaks up on anyone, including you.</p>
+          <p className="mb-5 text-sub">Goes on the calendar like everyone else&apos;s.</p>
           <Field label="Your birthday" type="date" value={yourBirthday} onChange={setYourBirthday} />
           <NextBtn onClick={() => next()} />
         </section>
@@ -815,7 +815,7 @@ export default function Onboarding() {
       {screen === "pet" && (
         <section className="flex flex-1 flex-col pt-4">
           <h1 className="mb-1 text-2xl font-bold">Any pets?</h1>
-          <p className="mb-5 text-sub">They&apos;re family too. Vet reminders live here later.</p>
+          <p className="mb-5 text-sub">Vet visits and food runs get tracked here later.</p>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Pet's name (optional)" value={petName} onChange={setPetName} />
             <Field label="What kind?" value={petKind} onChange={setPetKind} placeholder="Golden retriever" />
@@ -852,7 +852,7 @@ export default function Onboarding() {
       {screen === "date-night" && (
         <section className="flex flex-1 flex-col pt-4">
           <h1 className="mb-1 text-2xl font-bold">How often is date night, ideally?</h1>
-          <p className="mb-5 text-sub">I&apos;ll hold you to it, gently.</p>
+          <p className="mb-5 text-sub">The brief tracks the gap and calls it out.</p>
           <div className="flex gap-2">
             {[
               { l: "Weekly", d: 7 },
