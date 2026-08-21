@@ -117,11 +117,15 @@ export async function POST(request: Request) {
 
   let html = "";
   try {
+    // A plain browser UA: many recipe sites 403 anything that announces
+    // itself as a bot, and we only read the public page's recipe markup.
     const res = await fetch(url, {
       headers: {
         "user-agent":
-          "Mozilla/5.0 (compatible; FamilyOS/1.0; +https://familyos-lac.vercel.app)",
-        accept: "text/html,application/xhtml+xml",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "accept-language": "en-US,en;q=0.9",
       },
       redirect: "follow",
       signal: AbortSignal.timeout(12000),
