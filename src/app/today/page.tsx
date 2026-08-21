@@ -192,11 +192,6 @@ export default async function TodayPage() {
       <div className="space-y-3">
         <HealthCard />
         <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
-          <b>Recipe box + shopping list.</b> Save favorite recipes, tap
-          ingredients onto a shopping list, and get dinner ideas that skip what
-          the kids won&apos;t eat.
-        </div>
-        <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
           <b>Connect your AI.</b> Link the assistant you already use
           (ChatGPT, Claude) so FamilyOS can plan with the context it has about
           your life, and vice versa.
