@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AddressField from "@/components/AddressField";
+import Icon, { briefIcon } from "@/components/Icon";
 import type { BriefItem } from "@/lib/brief";
 
 type Kid = {
@@ -162,7 +163,7 @@ function Mic({ onText }: { onText: (t: string) => void }) {
         listening ? "bg-red-100 text-red-600" : "bg-blue-soft text-blue-ink"
       }`}
     >
-      {listening ? "● Listening... tap to stop" : "🎤 Say it instead"}
+      {listening ? "● Listening... tap to stop" : "Say it instead"}
     </button>
   );
 }
@@ -991,8 +992,8 @@ export default function Onboarding() {
               <div className="mt-5 space-y-3">
                 {firstBrief.items.slice(0, 5).map((b, i) => (
                   <div key={i} className="flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-soft text-lg">
-                      {b.icon}
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
+                      <Icon name={briefIcon(b.key, b.role)} />
                     </div>
                     <div className="flex-1">
                       <p className="text-[15px] leading-snug">{b.text}</p>
