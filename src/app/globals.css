@@ -1,26 +1,72 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
+
+/* Design language: a field tool, not a lifestyle app.
+   Deep greens, slate accents, flat surfaces, hard edges, mono labels.
+   The radius/shadow overrides below flatten the old soft look app-wide. */
 
 :root {
-  --background: #ffffff;
-  --foreground: #1e293b;
+  --background: #fafaf7;
+  --foreground: #141c17;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-brand: #26584a;
-  --color-brand-soft: #e4eeeb;
-  --color-blue: #61b2d6;
-  --color-blue-soft: #eaf4fa;
-  --color-blue-ink: #2e7396;
-  --color-ink: #1e293b;
-  --color-sub: #64748b;
-  --color-line: #e2e8f0;
+  --color-brand: #1d4a3c;
+  --color-brand-soft: #e2e9e5;
+  --color-blue: #44617b;
+  --color-blue-soft: #e7ecf0;
+  --color-blue-ink: #35516b;
+  --color-ink: #141c17;
+  --color-sub: #5b655f;
+  --color-line: #d4dad5;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
+/* Uppercase kicker labels across the app read in mono, like an instrument panel. */
+.tracking-widest,
+.tracking-wider,
+.tracking-wide {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+}
+
+/* Flatten the surface language everywhere without touching every file. */
+@layer utilities {
+  .rounded-3xl {
+    border-radius: 14px;
+  }
+  .rounded-t-3xl {
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+  }
+  .rounded-2xl {
+    border-radius: 8px;
+  }
+  .rounded-xl {
+    border-radius: 6px;
+  }
+  .rounded-lg {
+    border-radius: 4px;
+  }
+  .rounded-full {
+    border-radius: 9999px;
+  }
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none;
+  }
 }
