@@ -124,6 +124,31 @@ export async function gatherFacts(
       .limit(14),
   ]);
 
+  // Precomputed day gaps: the model must never do calendar math itself.
+  const DAY = 86400000;
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysUntil = (dateStr: string, recursYearly: boolean): number => {
+    const d = new Date(dateStr + "T00:00:00");
+    if (!recursYearly) return Math.round((d.getTime() - midnight.getTime()) / DAY);
+    const next = new Date(now.getFullYear(), d.getMonth(), d.getDate());
+    if (next.getTime() < midnight.getTime()) next.setFullYear(next.getFullYear() + 1);
+    return Math.round((next.getTime() - midnight.getTime()) / DAY);
+  };
+  const peopleAug = (people ?? []).map((p) => ({
+    ...p,
+    birthday_in_days:
+      typeof p.birthday === "string" && p.birthday
+        ? daysUntil(p.birthday, true)
+        : null,
+  }));
+  const datesAug = (dates ?? []).map((d) => ({
+    ...d,
+    in_days:
+      typeof d.date_value === "string" && d.date_value
+        ? daysUntil(d.date_value, Boolean(d.recurs_yearly))
+        : null,
+  }));
+
   const todayStr = now.toISOString().slice(0, 10);
   const suppressed = (cardStates ?? [])
     .filter((c) => !c.until || (c.until as string) >= todayStr)
@@ -148,8 +173,8 @@ export async function gatherFacts(
       sweet_text_optin: null,
       home_address: null,
     },
-    people: people ?? [],
-    tracked_dates: dates ?? [],
+    people: peopleAug,
+    tracked_dates: datesAug,
     routines: routines ?? [],
     home_items: homeItems ?? [],
     trips: trips ?? [],
