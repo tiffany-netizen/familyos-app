@@ -129,7 +129,7 @@ export default async function TodayPage() {
 
       {brief.length === 0 && (
         <div className="rounded-2xl border border-line p-5 text-center text-sm text-sub shadow-sm">
-          🟢 Nothing urgent today. As you add people, dates, and notes, your
+          Nothing urgent today. As you add people, dates, and notes, your
           brief fills in here every morning.
         </div>
       )}
@@ -152,7 +152,7 @@ export default async function TodayPage() {
             className="flex items-center justify-between rounded-2xl border border-line bg-white p-4 shadow-sm"
           >
             <span className="text-[15px]">
-              ✅ <b>{todoCount} thing{todoCount === 1 ? "" : "s"}</b> on your
+              <b>{todoCount} thing{todoCount === 1 ? "" : "s"}</b> on your
               to-do list
             </span>
             <span className="text-sm font-semibold text-blue-ink">View ›</span>
