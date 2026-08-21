@@ -8,6 +8,7 @@ import MemoryCapture from "@/components/MemoryCapture";
 import SignOutButton from "@/components/SignOutButton";
 import BottomNav from "@/components/BottomNav";
 import BriefFeed from "@/components/BriefFeed";
+import Icon from "@/components/Icon";
 import Link from "next/link";
 import {
   DateNightCard,
@@ -103,9 +104,10 @@ export default async function TodayPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/profile"
+            aria-label="Your profile"
             className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
           >
-            👤
+            <Icon name="users" size={14} className="inline" />
           </Link>
           <Link
             href="/digest"
@@ -190,12 +192,12 @@ export default async function TodayPage() {
       <div className="space-y-3">
         <HealthCard />
         <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
-          🍳 <b>Recipe box + shopping list.</b> Save favorite recipes, tap
+          <b>Recipe box + shopping list.</b> Save favorite recipes, tap
           ingredients onto a shopping list, and get dinner ideas that skip what
           the kids won&apos;t eat.
         </div>
         <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
-          🔌 <b>Connect your AI.</b> Link the assistant you already use
+          <b>Connect your AI.</b> Link the assistant you already use
           (ChatGPT, Claude) so FamilyOS can plan with the context it has about
           your life, and vice versa.
         </div>
