@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import UploadSchedule from "@/components/UploadSchedule";
+import { getAccessToken, listUpcomingEvents, type CalendarEvent } from "@/lib/google";
 
 const DAY = 86400000;
 
@@ -21,6 +22,13 @@ export default async function DigestPage() {
       supabase.from("routines").select("*"),
     ]);
 
+  // Google Calendar events, when connected
+  let calEvents: CalendarEvent[] = [];
+  try {
+    const token = await getAccessToken(supabase, user.id);
+    if (token) calEvents = await listUpcomingEvents(token, 7);
+  } catch {}
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const week: { day: string; items: string[] }[] = [];
@@ -31,20 +39,29 @@ export default async function DigestPage() {
     const mmdd = d.toISOString().slice(5, 10);
 
     (people ?? []).forEach((p) => {
-      if (p.birthday?.slice(5) === mmdd) items.push(`🎂 ${p.name}'s birthday`);
+      if (p.birthday?.slice(5) === mmdd) items.push(`${p.name}'s birthday`);
     });
     (dates ?? []).forEach((t) => {
-      if (t.date_value?.slice(5) === mmdd) items.push(`📅 ${t.label}`);
+      if (t.date_value?.slice(5) === mmdd) items.push(t.label);
     });
     (routines ?? []).forEach((r) => {
       if (r.days.split(",").map(Number).includes(d.getDay())) {
         items.push(
           r.kind === "school_run"
-            ? "🎒 School drop-off / pick-up (you)"
+            ? "School drop-off / pick-up (you)"
             : r.kind === "dinner"
-              ? "🍳 Dinner duty"
-              : `📌 ${r.label ?? "Routine"}`
+              ? "Dinner duty"
+              : `${r.label ?? "Routine"}`
         );
+      }
+    });
+    calEvents.forEach((e) => {
+      const start = new Date(e.all_day ? e.start + "T00:00:00" : e.start);
+      if (start >= d && start < new Date(d.getTime() + DAY)) {
+        const time = e.all_day
+          ? "all day"
+          : start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        items.push(`${e.summary} · ${time} · calendar`);
       }
     });
     (events ?? []).forEach((e) => {
@@ -54,7 +71,7 @@ export default async function DigestPage() {
           hour: "numeric",
           minute: "2-digit",
         });
-        items.push(`⚽ ${e.sport ?? "Practice"} · ${time}${e.location ? " · " + e.location : ""}`);
+        items.push(`${e.sport ?? "Practice"} · ${time}${e.location ? " · " + e.location : ""}`);
       }
     });
 
