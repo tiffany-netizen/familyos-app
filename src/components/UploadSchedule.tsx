@@ -85,10 +85,11 @@ export default function UploadSchedule({
 
   return (
     <div className="mt-6 rounded-2xl border border-line bg-white p-4 shadow-sm">
-      <p className="text-sm font-bold">📷 Upload a schedule</p>
+      <p className="text-sm font-bold">Upload a schedule</p>
       <p className="mt-1 text-[13px] leading-relaxed text-sub">
         Snap a photo of any sports or school schedule and the dates get read
-        into your week automatically.
+        into your week automatically. Photos are read and deleted, never
+        stored.
       </p>
       {state !== "reading" && (
         <>

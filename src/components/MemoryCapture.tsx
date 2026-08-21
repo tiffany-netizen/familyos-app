@@ -217,7 +217,7 @@ export default function MemoryCapture({
                     : "bg-blue-soft text-blue-ink"
                 }`}
               >
-                {listening ? "● Listening... tap to stop" : "🎤 Speak it instead"}
+                {listening ? "● Listening... tap to stop" : "Speak it instead"}
               </button>
             )}
             {note && (

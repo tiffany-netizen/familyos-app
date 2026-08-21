@@ -331,7 +331,8 @@ export default function WeeklyUpdate({
               className="flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3 text-sm"
             >
               <span>
-                {t.kind === "work" ? "💼" : "🧳"} <b>{t.destination}</b>
+                <b>{t.destination}</b>
+                <span className="ml-1.5 text-xs uppercase tracking-wide text-sub">{t.kind}</span>
                 {t.start_date ? ` · ${t.start_date}` : ""}
                 {t.end_date && t.end_date !== t.start_date ? ` → ${t.end_date}` : ""}
               </span>

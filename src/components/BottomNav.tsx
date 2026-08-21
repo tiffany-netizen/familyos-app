@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Icon from "@/components/Icon";
 
 const tabs = [
-  { href: "/today", label: "Today", icon: "☀️" },
-  { href: "/people", label: "People", icon: "👨‍👩‍👧" },
-  { href: "/todos", label: "To-dos", icon: "✅" },
-  { href: "/home-hub", label: "Home", icon: "🏡" },
-  { href: "/gifts", label: "Gifts", icon: "🎁" },
+  { href: "/today", label: "Today", icon: "sun" },
+  { href: "/people", label: "People", icon: "users" },
+  { href: "/todos", label: "To-dos", icon: "checks" },
+  { href: "/home-hub", label: "Home", icon: "home" },
+  { href: "/gifts", label: "Gifts", icon: "gift" },
 ];
 
 export default function BottomNav() {
@@ -22,15 +23,11 @@ export default function BottomNav() {
             <Link
               key={t.href}
               href={t.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11.5px] font-semibold ${
-                active ? "text-brand" : "text-sub"
+              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold ${
+                active ? "text-brand" : "text-sub/80"
               }`}
             >
-              <span
-                className={`text-lg ${active ? "" : "opacity-70 grayscale-[35%]"}`}
-              >
-                {t.icon}
-              </span>
+              <Icon name={t.icon} size={20} strokeWidth={active ? 2 : 1.7} />
               {t.label}
             </Link>
           );

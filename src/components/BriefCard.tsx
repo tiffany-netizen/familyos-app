@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { BriefItem } from "@/lib/brief";
+import Icon, { briefIcon } from "@/components/Icon";
 
 export default function BriefCard({ item }: { item: BriefItem }) {
   const router = useRouter();
@@ -69,8 +70,8 @@ export default function BriefCard({ item }: { item: BriefItem }) {
 
   return (
     <div className="flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-soft text-lg">
-        {item.icon}
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
+        <Icon name={briefIcon(item.key, item.role)} />
       </div>
       <div className="flex-1">
         <p className="text-[15px] leading-snug">{item.text}</p>

@@ -45,7 +45,7 @@ export default function DateNightPlanner() {
           disabled={state === "loading"}
           className="rounded-lg bg-blue-soft px-3.5 py-2 text-[13px] font-semibold text-blue-ink disabled:opacity-60"
         >
-          {state === "loading" ? "Thinking it through..." : "🧠 Plan the whole night for me"}
+          {state === "loading" ? "Working on it..." : "Plan the whole night for me"}
         </button>
         {state === "error" && (
           <p className="mt-2 text-[13px] text-sub">

@@ -31,7 +31,7 @@ export default function FeedbackCard() {
 
   return (
     <div className="mt-8 rounded-2xl border border-dashed border-line bg-white p-4">
-      <p className="text-sm font-bold">🧪 You&apos;re in the test kitchen</p>
+      <p className="text-sm font-bold">You&apos;re in the test build</p>
       <p className="mt-1 text-[13px] text-sub">
         Something confusing, broken, or missing? Drop it here and it goes
         straight to the build list. Coming next: a recipe box with a shopping
