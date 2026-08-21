@@ -12,6 +12,9 @@ export type Facts = {
     date_night_frequency_days: number | null;
     sweet_text_optin: boolean | null;
     home_address: string | null;
+    meal_notes?: string | null;
+    owns_home?: boolean | null;
+    brief_time?: string | null;
   };
   people: Record<string, unknown>[];
   tracked_dates: Record<string, unknown>[];
@@ -29,7 +32,7 @@ export type Facts = {
 };
 
 const PERSON_COLS =
-  "id,name,nickname,relationship,birthday,grade,school,teacher_name,best_friend,clothing_size,interests,allergies,favorite_wine,favorite_flowers,works,job,stress_note,last_contact,breed";
+  "id,name,nickname,relationship,birthday,grade,school,teacher_name,dismissal_time,best_friend,clothing_size,interests,allergies,pediatrician,favorite_wine,favorite_flowers,works,job,stress_note,last_contact,breed";
 
 export async function gatherFacts(
   supabase: SupabaseClient,
@@ -55,7 +58,7 @@ export async function gatherFacts(
     supabase
       .from("profiles")
       .select(
-        "full_name,date_night_frequency_days,sweet_text_optin,home_address"
+        "full_name,date_night_frequency_days,sweet_text_optin,home_address,meal_notes,owns_home,brief_time"
       )
       .eq("id", userId)
       .single(),
