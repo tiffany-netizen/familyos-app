@@ -67,7 +67,7 @@ export default async function GiftsPage() {
       <AddGift people={allPeople ?? []} />
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-4 text-center text-[13px] leading-relaxed text-sub shadow-sm">
-        📦 Coming soon: see something on Amazon, hit Share, pick FamilyOS, and
+        Coming soon: see something on Amazon, hit Share, pick FamilyOS, and
         it lands on the right person&apos;s list.
       </div>
       <BottomNav />
