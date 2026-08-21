@@ -3,6 +3,7 @@
 // and the service-role client (cron), because every query filters owner_id.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAccessToken, listUpcomingEvents, type CalendarEvent } from "@/lib/google";
 
 export type Facts = {
   today: string; // YYYY-MM-DD
@@ -29,6 +30,10 @@ export type Facts = {
   service_providers: Record<string, unknown>[];
   suppressed_keys: string[];
   recent_sms_drafts: string[];
+  saved_recipes: string[];
+  shopping_list_open_count: number;
+  calendar_connected: boolean;
+  calendar_events: CalendarEvent[];
 };
 
 const PERSON_COLS =
@@ -54,6 +59,8 @@ export async function gatherFacts(
     { data: providers },
     { data: cardStates },
     { data: recentBriefs },
+    { data: recipes },
+    { data: shoppingOpen },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -122,6 +129,17 @@ export async function gatherFacts(
       )
       .order("brief_date", { ascending: false })
       .limit(14),
+    supabase
+      .from("recipes")
+      .select("title")
+      .eq("owner_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(25),
+    supabase
+      .from("shopping_items")
+      .select("id")
+      .eq("owner_id", userId)
+      .eq("done", false),
   ]);
 
   // Precomputed day gaps: the model must never do calendar math itself.
@@ -148,6 +166,19 @@ export async function gatherFacts(
         ? daysUntil(d.date_value, Boolean(d.recurs_yearly))
         : null,
   }));
+
+  // Google Calendar, when connected: the next 7 days of the primary calendar.
+  let calendarEvents: CalendarEvent[] = [];
+  let calendarConnected = false;
+  try {
+    const token = await getAccessToken(supabase, userId);
+    if (token) {
+      calendarConnected = true;
+      calendarEvents = await listUpcomingEvents(token, 7);
+    }
+  } catch (e) {
+    console.error("[facts] calendar", e);
+  }
 
   const todayStr = now.toISOString().slice(0, 10);
   const suppressed = (cardStates ?? [])
@@ -186,5 +217,9 @@ export async function gatherFacts(
     service_providers: providers ?? [],
     suppressed_keys: suppressed,
     recent_sms_drafts: smsDrafts.slice(0, 20),
+    saved_recipes: (recipes ?? []).map((r) => String(r.title)),
+    shopping_list_open_count: (shoppingOpen ?? []).length,
+    calendar_connected: calendarConnected,
+    calendar_events: calendarEvents,
   };
 }

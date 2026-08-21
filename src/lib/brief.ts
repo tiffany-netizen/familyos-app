@@ -117,9 +117,9 @@ export function buildBrief(
         until: "20:00",
         actions: [
           {
-            label: "Recipe ideas",
+            label: "Recipe box",
             kind: "link",
-            href: "https://www.allrecipes.com/search?q=easy+weeknight+dinner",
+            href: "/meals",
             primary: true,
           },
           {
