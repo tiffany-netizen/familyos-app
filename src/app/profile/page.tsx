@@ -14,7 +14,7 @@ export default async function ProfilePage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "full_name,birthday,home_address,date_night_frequency_days,sweet_text_optin,brief_email,wants_gift_lists"
+      "full_name,birthday,home_address,date_night_frequency_days,sweet_text_optin,brief_email,wants_gift_lists,meal_notes,owns_home,brief_time"
     )
     .eq("id", user.id)
     .single();
@@ -44,6 +44,9 @@ export default async function ProfilePage() {
             sweet_text_optin: false,
             brief_email: true,
             wants_gift_lists: true,
+            meal_notes: null,
+            owns_home: null,
+            brief_time: "07:00",
           }
         }
       />
