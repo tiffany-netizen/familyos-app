@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 
 const tabs = [
   { href: "/today", label: "Today", icon: "sun" },
+  { href: "/meals", label: "Meals", icon: "pan" },
   { href: "/people", label: "People", icon: "users" },
   { href: "/todos", label: "To-dos", icon: "checks" },
   { href: "/home-hub", label: "Home", icon: "home" },
