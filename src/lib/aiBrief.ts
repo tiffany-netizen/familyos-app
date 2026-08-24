@@ -31,6 +31,12 @@ Write today's brief. Rules:
 - Anniversary and date-night items: give the two real choices, act or not: primary action finds a table (OpenTable link: https://www.opentable.com/s?covers=2&term=<city from home_address, else omit term>), and always include a dismiss action labeled "All under control". At the one-month mark, also offer {"label": "Start a gift list", "kind": "link", "href": "/gifts"}.
 - GIFT RADAR: if a gift occasion (Christmas, a tracked holiday, or a birthday) is 1 to 4 months out, end the brief with ONE light item, key "gift-radar", role "personal": a one-sentence nudge to jot down gift ideas for the kids or the person ("Any new interests lately?"), with actions {"label": "Open gift lists", "kind": "link", "href": "/gifts", "primary": true} and a snooze {"label": "In 2 weeks", "kind": "snooze", "payload": "14"}. Never more than one, always last.
 - Call-gap items: primary "We talked", plus snooze actions "In 2 weeks" (payload "14") and "In 4 weeks" (payload "28").
+- SNOOZE SANITY: never attach a snooze whose return lands after the item's event_date. Snoozing a birthday past the birthday is a plan to miss it. On dated items, omit snooze actions entirely; the app adds its own snooze picker capped at the day before event_date.
+- DINNER DISMISS: dinner and dinner-plan items always include a secondary {"label": "Handled", "kind": "dismiss"} so the user can clear tonight without waiting for expiry.
+- GROCERY LINKS: if profile.grocery_store is "none", never include Instacart or grocery-ordering links anywhere.
+- CLOCK FORMAT: profile.time_format "24h" means write times like 17:30; anything else means 5:30 PM style.
+- TEACHER RHYTHM: when a person has school_year_start, their grading and end-of-quarter crunches land roughly every 3 months from that date. Time good-luck texts and lighten-the-load suggestions to those weeks, not to generic dates.
+- ALLERGIES are silent context: use them when planning meals and gifts, but NEVER write a standalone allergy-reminder item. The shopping list flags allergy conflicts itself.
 - CALENDAR: when calendar_connected, calendar_events holds the real Google Calendar for the next 7 days. Fold today's and tomorrow's events into the brief with prep questions like any other event, key "cal:<summary-hyphenated>", until one hour after start for today's timed events. Never duplicate an event that also exists in sports_events. When suggesting date night or errands, prefer evenings with no calendar events.
 - Work trips: one concrete way to ease the load on the family while away. Family trips: one concrete prep step.
 - Weave remembered details in when they change a decision ("she wanted trail shoes, that covers the gift"), not as decoration.
@@ -46,6 +52,7 @@ Return ONLY JSON, no prose around it:
       "icon": "one emoji",
       "key": "stable-key-slug",
       "until": "HH:MM (optional, omit if not time-bound today)",
+      "event_date": "YYYY-MM-DD (REQUIRED on any item tied to a dated occasion: birthdays, tracked dates, sports events, calendar events, trip starts. Omit on undated items like call gaps.)",
       "text": "1-2 sentences, concrete and practical",
       "meta": "role · context, e.g. 'dad · today's checklist'",
       "role": "dad|husband|son|home|friend|personal",
@@ -106,12 +113,17 @@ function sanitize(raw: AiBrief | null): AiBrief | null {
       });
     }
     const until = (it as BriefItem).until;
+    const eventDate = (it as BriefItem).event_date;
     items.push({
       icon: typeof it.icon === "string" ? it.icon.slice(0, 8) : "•",
       key: slug((it as BriefItem).key),
       until:
         typeof until === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(until)
           ? until
+          : undefined,
+      event_date:
+        typeof eventDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(eventDate)
+          ? eventDate
           : undefined,
       text: deDash(it.text),
       meta: deDash(typeof it.meta === "string" ? it.meta : ""),

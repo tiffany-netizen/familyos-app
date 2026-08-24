@@ -50,6 +50,7 @@ export type BriefItem = {
   role: string;
   key?: string;
   until?: string; // "HH:MM" local; the feed hides the card after this time
+  event_date?: string; // "YYYY-MM-DD"; snoozes never reach past this date
   actions?: BriefAction[];
 };
 
@@ -80,7 +81,10 @@ type Routine = {
   days: string;
   day_times?: Record<string, string> | null;
 };
-type Profile = { sweet_text_optin?: boolean | null } | null;
+type Profile = {
+  sweet_text_optin?: boolean | null;
+  grocery_store?: string | null;
+} | null;
 
 export function buildBrief(
   people: Person[],
@@ -122,12 +126,16 @@ export function buildBrief(
             href: "/meals",
             primary: true,
           },
-          {
-            label: "Order groceries",
-            kind: "link",
-            href: "https://www.instacart.com/store",
-          },
-          { label: "Got it", kind: "confirm", payload: "Checked off." },
+          ...(profile?.grocery_store === "none"
+            ? []
+            : [
+                {
+                  label: "Order groceries",
+                  kind: "link",
+                  href: "https://www.instacart.com/store",
+                } as BriefAction,
+              ]),
+          { label: "Handled", kind: "dismiss" },
         ],
       });
     } else {
@@ -201,9 +209,11 @@ export function buildBrief(
   // Birthdays coming up
   for (const p of people) {
     if (!p.birthday) continue;
-    const days = daysUntil(nextOccurrence(p.birthday, true, today), today);
+    const next = nextOccurrence(p.birthday, true, today);
+    const days = daysUntil(next, today);
     if (days >= 0 && days <= 30) {
       items.push({
+        event_date: next.toISOString().slice(0, 10),
         icon: "🎂",
         text:
           days === 0
@@ -228,10 +238,12 @@ export function buildBrief(
 
   // Tracked dates (anniversary, holidays, custom)
   for (const d of dates) {
-    const days = daysUntil(nextOccurrence(d.date_value, d.recurs_yearly, today), today);
+    const nextDate = nextOccurrence(d.date_value, d.recurs_yearly, today);
+    const days = daysUntil(nextDate, today);
     if (days >= 0 && days <= d.lead_time_days) {
       const who = d.person_id ? byId.get(d.person_id) : null;
       items.push({
+        event_date: nextDate.toISOString().slice(0, 10),
         icon: d.label.toLowerCase().includes("anniversary") ? "💍" : "📅",
         text:
           days === 0
