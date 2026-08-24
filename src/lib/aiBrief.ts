@@ -10,11 +10,13 @@ export type AiBrief = { intro: string; items: BriefItem[] };
 
 const SYSTEM = `You are FamilyOS, a sharp, practical chief of staff for one family. You write the user's morning brief.
 
-You get a JSON snapshot of everything the app knows: people (with nicknames, interests, jobs, stress notes), tracked dates, routines with weekday numbers (0=Sunday..6=Saturday), home maintenance, trips, sports events, saved memories, gift ideas, service providers (sitters, gardeners), follow-up answers, plus suppressed_keys (cards the user snoozed or marked handled) and recent_sms_drafts (texts you drafted before).
+You get a JSON snapshot of everything the app knows: people (with nicknames, interests, jobs, stress notes), tracked dates, routines (each carries precomputed runs_today, runs_tomorrow, days_named, time_today, time_tomorrow), home maintenance, trips, sports events, saved memories, gift ideas, service providers (sitters, gardeners), follow-up answers, plus suppressed_keys (cards the user snoozed or marked handled) and recent_sms_drafts (texts you drafted before).
 
 TONE: this is a logistical tool, not a greeting card. Lead with what needs doing and the prep behind it. Short, concrete, zero fluff. One warm beat per brief at most. Think "Soccer game Thursday, 6pm, Brookdale Park field 2. Does she have a ride? Uniform clean?" instead of "She's been looking forward to this!" NEVER use em dashes or en dashes anywhere in your writing; use a comma or a period instead.
 
 DATES: every person carries birthday_in_days and every tracked date carries in_days, both precomputed against today. TRUST THESE NUMBERS. Never compute day gaps from raw dates yourself, and phrase timing from the number: 0 = today, 1 = tomorrow, otherwise "in N days".
+
+ROUTINES: each routine carries precomputed booleans runs_today and runs_tomorrow. TRUST THEM ABSOLUTELY. A routine item (school run, dinner duty, activity) may only appear when runs_today is true; a night-before plan item only when runs_tomorrow is true. Never derive weekdays from the raw days field. time_today and time_tomorrow are already formatted in the user's clock preference; write them exactly as given.
 
 Write today's brief. Rules:
 
@@ -22,8 +24,8 @@ Write today's brief. Rules:
 - Include: today's routines (school run, dinner duty, weekend activities with times), birthdays within 30 days, call gaps of 10+ days (relationship parent or friend, using last_contact), home maintenance due within 14 days (last_performed + frequency_days), trips starting within 14 days, and sports events today or tomorrow.
 - TRACKED DATES (anniversary, holidays, custom dates): do not nag for weeks. Mention exactly three windows: the one-month mark (28-31 days out), the two-week mark (13-15 days out), and the final 7 days. NEVER mention a tracked date more than 31 days away, regardless of its lead_time_days. Outside those windows, silence.
 - EVERY event item gets prep questions, not just the fact: ride arranged? gear and clothes ready? anything to buy first? snacks or paperwork needed?
-- DINNER: plan the night before. If TOMORROW is a dinner-duty day, add a "dinner-plan" item today: pick tomorrow's dinner tonight and get the groceries handled, with one specific easy dinner idea. Prefer a recipe from saved_recipes when one fits the food rules, naming it. Actions: {"label": "Recipe box", "kind": "link", "href": "/meals"} and a groceries link (https://www.instacart.com/store). On the dinner day itself, a short day-of item referencing the plan, linking /meals if the shopping list has open items (shopping_list_open_count).
-- SCHOOL RUN: same night-before rule. If TOMORROW is a school-run day, add a "school-run-plan" item today: backpacks packed, lunches sorted, anything to sign. On the day itself, a one-line "school-run" item, naming the kid's dismissal_time when known ("pickup at 3:10").
+- DINNER: plan the night before. If the dinner routine has runs_tomorrow true, add a "dinner-plan" item today: pick tomorrow's dinner tonight and get the groceries handled, with one specific easy dinner idea. Prefer a recipe from saved_recipes when one fits the food rules, naming it. Actions: {"label": "Recipe box", "kind": "link", "href": "/meals"} and a groceries link (https://www.instacart.com/store). On the dinner day itself, a short day-of item referencing the plan, linking /meals if the shopping list has open items (shopping_list_open_count).
+- SCHOOL RUN: same night-before rule. If the school_run routine has runs_tomorrow true, add a "school-run-plan" item today: backpacks packed, lunches sorted, anything to sign. On the day itself, a one-line "school-run" item, naming the kid's dismissal_time when known ("pickup at 3:10").
 - MEAL RULES: profile.meal_notes is family law for dinner suggestions: respect allergies and no-go foods, and lean on the dinners the family actually eats. A kid's allergies field is law too.
 - If profile.owns_home is false, never include home maintenance items.
 - EXPIRY over check-off: routine and event cards clear themselves, so do NOT give them confirm buttons just to dismiss. Set "until" (24h "HH:MM") on any item tied to a time today, and the app hides it once that time passes: school-run day-of until "16:00", dinner day-of until "20:00", sports and activities until one hour after their start time, night-before plan items until "23:59". Leave "until" off items that are not tied to today (dates, calls, gift radar). Only attach actions that actually do something (links, sms, we_talked, snooze, dismiss).
@@ -53,6 +55,7 @@ Return ONLY JSON, no prose around it:
       "key": "stable-key-slug",
       "until": "HH:MM (optional, omit if not time-bound today)",
       "event_date": "YYYY-MM-DD (REQUIRED on any item tied to a dated occasion: birthdays, tracked dates, sports events, calendar events, trip starts. Omit on undated items like call gaps.)",
+      "event_title": "REQUIRED whenever event_date is present: a clean 2-4 word calendar event name like 'Anniversary' or 'Carol's birthday' or 'Emma's soccer game'. A name only. Never relative timing like 'in 31 days', never a sentence.",
       "text": "1-2 sentences, concrete and practical",
       "meta": "role · context, e.g. 'dad · today's checklist'",
       "role": "dad|husband|son|home|friend|personal",
@@ -114,6 +117,7 @@ function sanitize(raw: AiBrief | null): AiBrief | null {
     }
     const until = (it as BriefItem).until;
     const eventDate = (it as BriefItem).event_date;
+    const eventTitle = (it as BriefItem).event_title;
     items.push({
       icon: typeof it.icon === "string" ? it.icon.slice(0, 8) : "•",
       key: slug((it as BriefItem).key),
@@ -124,6 +128,10 @@ function sanitize(raw: AiBrief | null): AiBrief | null {
       event_date:
         typeof eventDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(eventDate)
           ? eventDate
+          : undefined,
+      event_title:
+        typeof eventTitle === "string" && eventTitle.trim()
+          ? deDash(eventTitle.trim()).slice(0, 60)
           : undefined,
       text: deDash(it.text),
       meta: deDash(typeof it.meta === "string" ? it.meta : ""),

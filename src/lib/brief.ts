@@ -51,6 +51,7 @@ export type BriefItem = {
   key?: string;
   until?: string; // "HH:MM" local; the feed hides the card after this time
   event_date?: string; // "YYYY-MM-DD"; snoozes never reach past this date
+  event_title?: string; // clean calendar-event name ("Anniversary"), no relative timing
   actions?: BriefAction[];
 };
 
@@ -214,6 +215,7 @@ export function buildBrief(
     if (days >= 0 && days <= 30) {
       items.push({
         event_date: next.toISOString().slice(0, 10),
+        event_title: `${p.name}'s birthday`,
         icon: "🎂",
         text:
           days === 0
@@ -244,6 +246,7 @@ export function buildBrief(
       const who = d.person_id ? byId.get(d.person_id) : null;
       items.push({
         event_date: nextDate.toISOString().slice(0, 10),
+        event_title: d.label,
         icon: d.label.toLowerCase().includes("anniversary") ? "💍" : "📅",
         text:
           days === 0

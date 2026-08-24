@@ -144,13 +144,17 @@ export async function gatherFacts(
       .eq("done", false),
   ]);
 
+  // All "today" math runs on Eastern time, not server UTC. A brief built
+  // at 9pm ET must not think it's already tomorrow.
+  const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+
   // Precomputed day gaps: the model must never do calendar math itself.
   const DAY = 86400000;
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const midnight = new Date(et.getFullYear(), et.getMonth(), et.getDate());
   const daysUntil = (dateStr: string, recursYearly: boolean): number => {
     const d = new Date(dateStr + "T00:00:00");
     if (!recursYearly) return Math.round((d.getTime() - midnight.getTime()) / DAY);
-    const next = new Date(now.getFullYear(), d.getMonth(), d.getDate());
+    const next = new Date(et.getFullYear(), d.getMonth(), d.getDate());
     if (next.getTime() < midnight.getTime()) next.setFullYear(next.getFullYear() + 1);
     return Math.round((next.getTime() - midnight.getTime()) / DAY);
   };
@@ -169,6 +173,47 @@ export async function gatherFacts(
         : null,
   }));
 
+  // Routines: precompute which run today/tomorrow and format their times in
+  // the user's clock format. Day numbers are 0=Sunday..6=Saturday; the model
+  // must never map weekday numbers itself.
+  const DAY_NAMES = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const dow = et.getDay();
+  const dowTomorrow = (dow + 1) % 7;
+  const wants24h = profile?.time_format === "24h";
+  const fmtTime = (t: unknown): string | null => {
+    if (typeof t !== "string" || !/^\d{1,2}:\d{2}/.test(t)) return null;
+    const [h, m] = t.split(":").map((x) => parseInt(x, 10));
+    if (wants24h) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+  };
+  const routinesAug = (routines ?? []).map((r) => {
+    const dayNums = String(r.days ?? "")
+      .split(",")
+      .map((s) => parseInt(s, 10))
+      .filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    const times = (r.day_times ?? null) as Record<string, string> | null;
+    const timeFor = (d: number) => fmtTime(times?.[String(d)]);
+    return {
+      ...r,
+      days_named: dayNums.map((n) => DAY_NAMES[n]).join(", "),
+      runs_today: dayNums.includes(dow),
+      runs_tomorrow: dayNums.includes(dowTomorrow),
+      time_today: dayNums.includes(dow) ? timeFor(dow) : null,
+      time_tomorrow: dayNums.includes(dowTomorrow) ? timeFor(dowTomorrow) : null,
+      notify: fmtTime(r.notify) ?? r.notify,
+    };
+  });
+
   // Google Calendar, when connected: the next 7 days of the primary calendar.
   let calendarEvents: CalendarEvent[] = [];
   let calendarConnected = false;
@@ -182,7 +227,7 @@ export async function gatherFacts(
     console.error("[facts] calendar", e);
   }
 
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, "0")}-${String(et.getDate()).padStart(2, "0")}`;
   const suppressed = (cardStates ?? [])
     .filter((c) => !c.until || (c.until as string) >= todayStr)
     .map((c) => c.card_key as string);
@@ -198,8 +243,8 @@ export async function gatherFacts(
   }
 
   return {
-    today: now.toISOString().slice(0, 10),
-    weekday: now.toLocaleDateString("en-US", { weekday: "long" }),
+    today: todayStr,
+    weekday: DAY_NAMES[dow],
     profile: profile ?? {
       full_name: null,
       date_night_frequency_days: null,
@@ -208,7 +253,7 @@ export async function gatherFacts(
     },
     people: peopleAug,
     tracked_dates: datesAug,
-    routines: routines ?? [],
+    routines: routinesAug,
     home_items: homeItems ?? [],
     trips: trips ?? [],
     sports_events: events ?? [],
