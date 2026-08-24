@@ -68,9 +68,15 @@ export function DateNightCard({
       let lon: number;
       // The home town from onboarding wins; browser location is the fallback.
       if (homeCity && homeCity.trim()) {
-        const geo = await fetch(
+        // Full address first; if the geocoder whiffs, retry with just the city.
+        let geo = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(homeCity.trim())}`
         ).then((r) => r.json());
+        if (!geo?.[0]) {
+          geo = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(cityOf(homeCity))}`
+          ).then((r) => r.json());
+        }
         if (!geo?.[0]) throw new Error("geocode");
         lat = parseFloat(geo[0].lat);
         lon = parseFloat(geo[0].lon);
@@ -146,6 +152,15 @@ export function DateNightCard({
                 ? "sample list (location unavailable)"
                 : "standing priority"}
           </p>
+          {locState === "fallback" && !(homeCity && homeCity.trim()) && (
+            <p className="mt-1 text-xs text-sub">
+              Add your home address in{" "}
+              <Link href="/profile" className="font-semibold text-blue-ink">
+                your profile
+              </Link>{" "}
+              and picks come from your real area.
+            </p>
+          )}
 
           <DateNightPlanner />
           {booked ? (
@@ -214,14 +229,19 @@ export function DateNightCard({
                   ))}
                 </div>
               )}
-              <a
-                href={`sms:?&body=${encodeURIComponent(
-                  `Thinking about you. Date night soon? ❤️`
-                )}`}
-                className="mt-3 inline-block text-[13px] font-semibold text-blue-ink"
-              >
-                Or just send {spouseName} a sweet text ›
-              </a>
+              <div className="mt-3 flex flex-wrap gap-x-4">
+                <a
+                  href={`sms:?&body=${encodeURIComponent(
+                    `Thinking about you. Date night soon? ❤️`
+                  )}`}
+                  className="text-[13px] font-semibold text-blue-ink"
+                >
+                  Or just send {spouseName} a sweet text ›
+                </a>
+                <Link href="/sitter" className="text-[13px] font-semibold text-blue-ink">
+                  Sitter brief ›
+                </Link>
+              </div>
             </>
           )}
         </div>

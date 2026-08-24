@@ -19,6 +19,8 @@ type Profile = {
   meal_notes: string | null;
   owns_home: boolean | null;
   brief_time: string | null;
+  grocery_store: string | null;
+  time_format: string | null;
 };
 
 function Chip({
@@ -57,6 +59,8 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
   const [mealNotes, setMealNotes] = useState(initial.meal_notes ?? "");
   const [ownsHome, setOwnsHome] = useState<boolean | null>(initial.owns_home);
   const [briefTime, setBriefTime] = useState(initial.brief_time ?? "07:00");
+  const [groceryLinks, setGroceryLinks] = useState(initial.grocery_store !== "none");
+  const [timeFormat, setTimeFormat] = useState(initial.time_format === "24h" ? "24h" : "12h");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +90,8 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         meal_notes: mealNotes.trim() || null,
         owns_home: ownsHome,
         brief_time: briefTime || "07:00",
+        grocery_store: groceryLinks ? "instacart" : "none",
+        time_format: timeFormat,
       })
       .eq("id", user.id);
     if (e) {
@@ -190,6 +196,26 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
           windows roll out.
         </span>
       </label>
+
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Clock format
+        </span>
+        <div className="flex gap-2">
+          <Chip on={timeFormat === "12h"} onClick={() => setTimeFormat("12h")}>AM / PM</Chip>
+          <Chip on={timeFormat === "24h"} onClick={() => setTimeFormat("24h")}>24-hour</Chip>
+        </div>
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Grocery ordering links (Instacart)
+        </span>
+        <div className="flex gap-2">
+          <Chip on={groceryLinks} onClick={() => setGroceryLinks(true)}>Show</Chip>
+          <Chip on={!groceryLinks} onClick={() => setGroceryLinks(false)}>Hide</Chip>
+        </div>
+      </div>
 
       <div>
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">

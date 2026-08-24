@@ -32,10 +32,14 @@ export default function MealsClient({
   initialRecipes,
   initialItems,
   mealNotes,
+  showGrocery = true,
+  allergyTerms = [],
 }: {
   initialRecipes: Recipe[];
   initialItems: Item[];
   mealNotes: string;
+  showGrocery?: boolean;
+  allergyTerms?: { person: string; term: string }[];
 }) {
   const router = useRouter();
   const [recipes, setRecipes] = useState<Recipe[]>(initialRecipes);
@@ -136,6 +140,18 @@ export default function MealsClient({
   const openItems = items.filter((i) => !i.done);
   const doneItems = items.filter((i) => i.done);
 
+  // Flag list items that collide with a family allergy ("peanut" in
+  // "peanut butter"). Naive singular match on purpose: better one false
+  // alarm than a missed one.
+  function allergyHit(name: string): { person: string; term: string } | null {
+    const n = name.toLowerCase();
+    for (const a of allergyTerms) {
+      const t = a.term.endsWith("s") ? a.term.slice(0, -1) : a.term;
+      if (n.includes(t)) return a;
+    }
+    return null;
+  }
+
   return (
     <div className="space-y-7">
       {/* Import */}
@@ -173,14 +189,16 @@ export default function MealsClient({
           <h2 className="text-xs font-bold uppercase tracking-widest text-sub">
             Shopping list
           </h2>
-          <a
-            href="https://www.instacart.com/store"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[13px] font-semibold text-blue-ink"
-          >
-            Order on Instacart ›
-          </a>
+          {showGrocery && (
+            <a
+              href="https://www.instacart.com/store"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[13px] font-semibold text-blue-ink"
+            >
+              Order on Instacart ›
+            </a>
+          )}
         </div>
         <div className="rounded-2xl border border-line bg-white p-4">
           {openItems.length === 0 && doneItems.length === 0 && (
@@ -190,22 +208,32 @@ export default function MealsClient({
             </p>
           )}
           <div className="space-y-1.5">
-            {[...openItems, ...doneItems].map((i) => (
-              <button
-                key={i.id}
-                onClick={() => toggleItem(i)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left text-sm"
-              >
-                <span
-                  className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-[1.5px] ${
-                    i.done ? "border-brand bg-brand text-white" : "border-line"
-                  }`}
+            {[...openItems, ...doneItems].map((i) => {
+              const hit = i.done ? null : allergyHit(i.name);
+              return (
+                <button
+                  key={i.id}
+                  onClick={() => toggleItem(i)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left text-sm"
                 >
-                  {i.done ? "✓" : ""}
-                </span>
-                <span className={i.done ? "text-sub line-through" : ""}>{i.name}</span>
-              </button>
-            ))}
+                  <span
+                    className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-[1.5px] ${
+                      i.done ? "border-brand bg-brand text-white" : "border-line"
+                    }`}
+                  >
+                    {i.done ? "✓" : ""}
+                  </span>
+                  <span className={i.done ? "text-sub line-through" : ""}>
+                    {i.name}
+                    {hit && (
+                      <span className="mt-0.5 block text-xs font-semibold text-red-600">
+                        Heads up: {hit.person} is allergic ({hit.term})
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <div className="mt-3 flex gap-2">
             <input

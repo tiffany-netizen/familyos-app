@@ -24,6 +24,10 @@ export default function BriefCard({ item }: { item: BriefItem }) {
   const [customDate, setCustomDate] = useState("");
 
   const cardKey = item.key ?? `card:${item.text.slice(0, 40)}`;
+  // Daily routine cards: a dismiss clears today only, never weeks ahead.
+  const isDailyRoutine = ["dinner", "dinner-plan", "school-run", "school-run-plan"].includes(
+    item.key ?? ""
+  );
 
   async function setCardState(status: "snoozed" | "dismissed", until: string) {
     setBusy(true);
@@ -67,8 +71,12 @@ export default function BriefCard({ item }: { item: BriefItem }) {
       return;
     }
     if (a.kind === "dismiss") {
-      await setCardState("dismissed", daysFromNow(45));
-      setNote("Marked under control. I'll stay out of it.");
+      await setCardState("dismissed", daysFromNow(isDailyRoutine ? 1 : 45));
+      setNote(
+        isDailyRoutine
+          ? "Cleared for today. Back on its next day."
+          : "Marked under control. I'll stay out of it."
+      );
       setTimeout(() => setHidden(true), 1600);
       return;
     }
@@ -97,6 +105,23 @@ export default function BriefCard({ item }: { item: BriefItem }) {
   if (hidden) return null;
 
   const hasSnoozeAction = (item.actions ?? []).some((a) => a.kind === "snooze");
+
+  // Snoozes never reach past the event itself.
+  const dayBeforeEvent = item.event_date
+    ? new Date(new Date(item.event_date + "T00:00:00").getTime() - 86400000)
+        .toISOString()
+        .slice(0, 10)
+    : null;
+  const choices = SNOOZE_CHOICES.filter(
+    (c) => !dayBeforeEvent || daysFromNow(c.days) <= dayBeforeEvent
+  );
+
+  // One tap onto the user's own calendar for anything with a real date.
+  const calendarHref = item.event_date
+    ? `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+        item.text.split(/[.?!]/)[0].slice(0, 80)
+      )}&dates=${item.event_date.replace(/-/g, "")}/${item.event_date.replace(/-/g, "")}`
+    : null;
 
   return (
     <div className="flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
@@ -140,9 +165,19 @@ export default function BriefCard({ item }: { item: BriefItem }) {
                       : "bg-blue-soft text-blue-ink"
                   }`}
                 >
-                  {a.label}
+                  {a.kind === "snooze" ? "Snooze" : a.label}
                 </button>
               )
+            )}
+            {calendarHref && (
+              <a
+                href={calendarHref}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg px-2.5 py-2 text-[13px] font-semibold text-blue-ink"
+              >
+                Add to calendar
+              </a>
             )}
             {!hasSnoozeAction && item.key && (
               <button
@@ -167,9 +202,20 @@ export default function BriefCard({ item }: { item: BriefItem }) {
             <h3 className="text-lg font-bold">Remind me again...</h3>
             <p className="mb-4 mt-1 text-sm text-sub">
               It leaves your brief until then.
+              {dayBeforeEvent &&
+                ` The date is ${new Date(item.event_date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}, so choices stop the day before.`}
             </p>
             <div className="flex flex-wrap gap-2">
-              {SNOOZE_CHOICES.map((c) => (
+              {dayBeforeEvent && (
+                <button
+                  disabled={busy}
+                  onClick={() => snoozeUntil(dayBeforeEvent)}
+                  className="rounded-xl border-[1.5px] border-brand bg-brand-soft px-4 py-2.5 text-sm font-semibold"
+                >
+                  Day before
+                </button>
+              )}
+              {choices.map((c) => (
                 <button
                   key={c.days}
                   disabled={busy}
@@ -186,6 +232,7 @@ export default function BriefCard({ item }: { item: BriefItem }) {
                 type="date"
                 value={customDate}
                 min={daysFromNow(1)}
+                max={dayBeforeEvent ?? undefined}
                 onChange={(e) => setCustomDate(e.target.value)}
                 className="flex-1 rounded-lg border-[1.5px] border-line px-3 py-2 text-sm outline-none focus:border-brand"
               />
