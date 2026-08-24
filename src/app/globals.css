@@ -1,26 +1,28 @@
 @import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
 
-/* Design language: a field tool, not a lifestyle app.
-   Deep greens, slate accents, flat surfaces, hard edges, mono labels.
-   The radius/shadow overrides below flatten the old soft look app-wide. */
+/* Design language: a printed field manual, not a lifestyle app.
+   Paper background, hairline rules, near-square corners, deep green ink,
+   mono labels on anything that reads like an instrument. The overrides at
+   the bottom flatten the old soft look app-wide without touching every file. */
 
 :root {
-  --background: #fafaf7;
-  --foreground: #141c17;
+  --background: #f4f2ec;
+  --foreground: #131a15;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-brand: #1d4a3c;
-  --color-brand-soft: #e2e9e5;
+  --color-brand-soft: #e0e7e1;
   --color-blue: #44617b;
-  --color-blue-soft: #e7ecf0;
+  --color-blue-soft: #e5eaee;
   --color-blue-ink: #35516b;
-  --color-ink: #141c17;
-  --color-sub: #5b655f;
-  --color-line: #d4dad5;
+  --color-ink: #131a15;
+  --color-sub: #59615a;
+  --color-line: #cfcdc0;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 body {
@@ -28,12 +30,13 @@ body {
   color: var(--foreground);
   font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
+  font-feature-settings: "tnum";
 }
 
 h1,
 h2,
 h3 {
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 /* Uppercase kicker labels across the app read in mono, like an instrument panel. */
@@ -44,23 +47,33 @@ h3 {
   letter-spacing: 0.08em;
 }
 
+/* Primary CTAs read like stamped controls: mono, uppercase, square. */
+button.bg-brand,
+a.bg-brand {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+}
+
 /* Flatten the surface language everywhere without touching every file. */
 @layer utilities {
   .rounded-3xl {
-    border-radius: 14px;
-  }
-  .rounded-t-3xl {
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
-  }
-  .rounded-2xl {
-    border-radius: 8px;
-  }
-  .rounded-xl {
     border-radius: 6px;
   }
-  .rounded-lg {
-    border-radius: 4px;
+  .rounded-t-3xl {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+  }
+  .rounded-2xl {
+    border-radius: 3px;
+  }
+  .rounded-xl {
+    border-radius: 2px;
+  }
+  .rounded-lg,
+  .rounded-md {
+    border-radius: 2px;
   }
   .rounded-full {
     border-radius: 9999px;
@@ -68,5 +81,8 @@ h3 {
   .shadow-sm,
   .shadow-lg {
     box-shadow: none;
+  }
+  .border-line {
+    border-color: var(--color-line);
   }
 }
