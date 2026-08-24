@@ -22,7 +22,7 @@ export default async function WeeklyPage() {
       .select("id,kind,destination,start_date,end_date")
       .or(`end_date.gte.${today},end_date.is.null`)
       .order("start_date"),
-    supabase.from("people").select("id").eq("relationship", "child").limit(1),
+    supabase.from("people").select("id,name").eq("relationship", "child"),
   ]);
 
   return (
@@ -40,6 +40,7 @@ export default async function WeeklyPage() {
         routines={routines ?? []}
         trips={trips ?? []}
         hasKids={(kids ?? []).length > 0}
+        kidNames={(kids ?? []).map((k) => String(k.name))}
       />
       <BottomNav />
     </main>
