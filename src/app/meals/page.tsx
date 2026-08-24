@@ -11,7 +11,7 @@ export default async function MealsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: recipes }, { data: items }, { data: profile }] =
+  const [{ data: recipes }, { data: items }, { data: profile }, { data: people }] =
     await Promise.all([
       supabase
         .from("recipes")
@@ -26,7 +26,22 @@ export default async function MealsPage() {
         .select("meal_notes,grocery_store")
         .eq("id", user.id)
         .single(),
+      supabase
+        .from("people")
+        .select("name,allergies")
+        .eq("owner_id", user.id)
+        .not("allergies", "is", null),
     ]);
+
+  // "Peanuts, tree nuts (mild)" -> terms ["peanut", "tree nuts"...] per person
+  const STOP = new Set(["mild", "severe", "allergy", "allergies", "and", "the", "some"]);
+  const allergyTerms = (people ?? []).flatMap((p) =>
+    String(p.allergies ?? "")
+      .split(/[,;/]+/)
+      .map((t) => t.replace(/\(.*?\)/g, "").trim().toLowerCase())
+      .filter((t) => t.length > 2 && !STOP.has(t))
+      .map((term) => ({ person: String(p.name).split(" ")[0], term }))
+  );
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
@@ -46,6 +61,8 @@ export default async function MealsPage() {
         initialRecipes={(recipes ?? []) as never}
         initialItems={(items ?? []) as never}
         mealNotes={profile?.meal_notes ?? ""}
+        showGrocery={profile?.grocery_store !== "none"}
+        allergyTerms={allergyTerms}
       />
       <BottomNav />
     </main>
