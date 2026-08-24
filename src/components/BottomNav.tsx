@@ -4,13 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/Icon";
 
+// The OS suffix marks the database sections; Today and To-dos are the
+// action surfaces. "HomeOS" also stops the house tab reading as a
+// back-to-homepage button.
 const tabs = [
   { href: "/today", label: "Today", icon: "sun" },
-  { href: "/meals", label: "Meals", icon: "pan" },
-  { href: "/people", label: "People", icon: "users" },
+  { href: "/meals", label: "MealOS", icon: "pan" },
+  { href: "/people", label: "PeopleOS", icon: "users" },
   { href: "/todos", label: "To-dos", icon: "checks" },
-  { href: "/home-hub", label: "Home", icon: "home" },
-  { href: "/gifts", label: "Gifts", icon: "gift" },
+  { href: "/home-hub", label: "HomeOS", icon: "home" },
+  { href: "/gifts", label: "GiftOS", icon: "gift" },
 ];
 
 export default function BottomNav() {
@@ -24,7 +27,7 @@ export default function BottomNav() {
             <Link
               key={t.href}
               href={t.href}
-              className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold ${
+              className={`flex flex-1 flex-col items-center gap-1 py-2.5 font-mono text-[10px] font-semibold tracking-tight ${
                 active ? "text-brand" : "text-sub/80"
               }`}
             >

@@ -117,10 +117,27 @@ export default function BriefCard({ item }: { item: BriefItem }) {
   );
 
   // One tap onto the user's own calendar for anything with a real date.
+  // The event title must be a clean name: "Anniversary", never
+  // "Anniversary is in 31 days, September 24".
+  const calTitle =
+    item.event_title ??
+    item.text
+      .split(/[.?!]/)[0]
+      .replace(/\s+(?:is|are)?\s*(?:coming up\s*)?in \d+ (?:days?|weeks?|months?)/i, "")
+      .replace(/\s+(?:is|are)\s+(?:today|tomorrow)/i, "")
+      .replace(/,\s*[A-Z][a-z]+ \d{1,2}(?:st|nd|rd|th)?$/, "")
+      .trim()
+      .slice(0, 60);
+  // All-day events end the NEXT day (Google treats the end as exclusive).
+  const calEnd = item.event_date
+    ? new Date(new Date(item.event_date + "T00:00:00").getTime() + 86400000)
+        .toISOString()
+        .slice(0, 10)
+    : null;
   const calendarHref = item.event_date
     ? `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-        item.text.split(/[.?!]/)[0].slice(0, 80)
-      )}&dates=${item.event_date.replace(/-/g, "")}/${item.event_date.replace(/-/g, "")}`
+        calTitle
+      )}&dates=${item.event_date.replace(/-/g, "")}/${calEnd!.replace(/-/g, "")}`
     : null;
 
   return (
