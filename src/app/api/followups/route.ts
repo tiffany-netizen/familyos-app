@@ -244,12 +244,23 @@ export async function POST(request: Request) {
             .eq("owner_id", user.id),
           supabase.from("profiles").select("full_name,home_address").eq("id", user.id).single(),
         ]);
+        const system =
+          fu.kind === "todo"
+            ? COACH_SYSTEM +
+              `\n\nThis follow-up came from a to-do. If the answer names a NEW person or service provider (a babysitter, cleaner, coach, doctor, friend), also return "service_provider": {"name": "...", "kind": "babysitter|cleaner|gardener|mechanic|other"} or "person": {"name": "...", "relationship": "friend|parent|sibling|other"}; otherwise null for both. They get filed into the database automatically.`
+            : COACH_SYSTEM;
         const raw = await askClaude({
-          system: COACH_SYSTEM,
+          system,
           prompt: `Family context: ${JSON.stringify({ profile, people })}\n\nQuestion asked: ${fu.question}\n\nUser's answer: """${answer}"""`,
           maxTokens: 800,
         });
-        const out = extractJson<{ reply: string; todos: string[]; memory: string | null }>(raw);
+        const out = extractJson<{
+          reply: string;
+          todos: string[];
+          memory: string | null;
+          service_provider?: { name: string; kind: string } | null;
+          person?: { name: string; relationship: string } | null;
+        }>(raw);
         if (out?.reply) {
           reply = out.reply;
           if (out.todos?.length) {
@@ -263,6 +274,26 @@ export async function POST(request: Request) {
               body: out.memory,
               category: "interest",
               source: "weekly_checkin",
+            });
+          }
+          if (fu.kind === "todo" && out.service_provider?.name) {
+            await supabase.from("service_providers").insert({
+              owner_id: user.id,
+              name: out.service_provider.name.slice(0, 80),
+              kind: ["babysitter", "cleaner", "gardener", "mechanic"].includes(
+                out.service_provider.kind
+              )
+                ? out.service_provider.kind
+                : "other",
+            });
+          }
+          if (fu.kind === "todo" && out.person?.name) {
+            await supabase.from("people").insert({
+              owner_id: user.id,
+              name: out.person.name.slice(0, 80),
+              relationship: ["friend", "parent", "sibling"].includes(out.person.relationship)
+                ? out.person.relationship
+                : "other",
             });
           }
         }
