@@ -34,6 +34,64 @@ const WEEKDAYS = [
 ];
 const ALLDAYS = [...WEEKDAYS, { n: 6, l: "Sat" }, { n: 0, l: "Sun" }];
 
+// Google Calendar template link for a weekly recurring event: prefilled
+// title, first occurrence, and RRULE. Google's URL can't preset reminders,
+// so the details text nudges the user to add night-before and 1-hour ones
+// while the editor is open. FamilyOS itself still does the night-before
+// plan and day-of item in the brief.
+const BYDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+function recurringCalUrl(
+  title: string,
+  days: number[],
+  time: string,
+  durationMin: number
+): string | null {
+  if (days.length === 0) return null;
+  const now = new Date();
+  let start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    if (days.includes(d.getDay())) {
+      start = d;
+      break;
+    }
+  }
+  const [h, m] = (time || "08:00").split(":").map((x) => parseInt(x, 10));
+  start.setHours(isNaN(h) ? 8 : h, isNaN(m) ? 0 : m, 0, 0);
+  const end = new Date(start.getTime() + durationMin * 60000);
+  const fmt = (x: Date) =>
+    `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, "0")}${String(
+      x.getDate()
+    ).padStart(2, "0")}T${String(x.getHours()).padStart(2, "0")}${String(
+      x.getMinutes()
+    ).padStart(2, "0")}00`;
+  const recur = `RRULE:FREQ=WEEKLY;BYDAY=${[...days]
+    .sort()
+    .map((n) => BYDAY[n])
+    .join(",")}`;
+  const details =
+    "From FamilyOS. Tip: add two notifications while you're here, one the night before and one 1 hour before.";
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+    title
+  )}&dates=${fmt(start)}/${fmt(end)}&recur=${encodeURIComponent(
+    recur
+  )}&details=${encodeURIComponent(details)}`;
+}
+
+function CalLink({ href }: { href: string | null }) {
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-2 inline-block text-[13px] font-semibold text-blue-ink"
+    >
+      Add to Google Calendar (repeats weekly) ›
+    </a>
+  );
+}
+
 type Activity = {
   id?: string;
   label: string;
@@ -79,11 +137,17 @@ export default function WeeklyUpdate({
   routines,
   trips,
   hasKids = true,
+  kidNames = [],
 }: {
   routines: Routine[];
   trips: TripRow[];
   hasKids?: boolean;
+  kidNames?: string[];
 }) {
+  const schoolRunTitle =
+    kidNames.length === 1
+      ? `Take ${kidNames[0].split(" ")[0]} to school`
+      : "Take the kids to school";
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -242,12 +306,14 @@ export default function WeeklyUpdate({
             School drop-off / pick-up days
           </p>
           <DayChips days={schoolDays} setDays={setSchoolDays} set={WEEKDAYS} />
+          <CalLink href={recurringCalUrl(schoolRunTitle, schoolDays, "08:00", 30)} />
         </div>
       )}
 
       <div>
         <p className="mb-2 text-sm font-semibold">Dinner duty nights</p>
         <DayChips days={dinnerDays} setDays={setDinnerDays} set={WEEKDAYS} />
+        <CalLink href={recurringCalUrl("Dinner duty", dinnerDays, "18:00", 60)} />
       </div>
 
       <div>
@@ -297,6 +363,11 @@ export default function WeeklyUpdate({
                   />
                 </label>
               </div>
+              {a.label.trim() && (
+                <CalLink
+                  href={recurringCalUrl(a.label.trim(), a.days, a.time || "17:00", 60)}
+                />
+              )}
             </div>
           ))}
           <button
