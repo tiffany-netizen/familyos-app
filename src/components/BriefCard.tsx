@@ -6,44 +6,70 @@ import { createClient } from "@/lib/supabase/client";
 import type { BriefItem } from "@/lib/brief";
 import Icon, { briefIcon } from "@/components/Icon";
 
+// Snooze choices for the picker. "Pick a date" covers everything else.
+const SNOOZE_CHOICES = [
+  { label: "Tomorrow", days: 1 },
+  { label: "In 3 days", days: 3 },
+  { label: "Next week", days: 7 },
+  { label: "In 2 weeks", days: 14 },
+  { label: "In a month", days: 30 },
+];
+
 export default function BriefCard({ item }: { item: BriefItem }) {
   const router = useRouter();
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [customDate, setCustomDate] = useState("");
+
+  const cardKey = item.key ?? `card:${item.text.slice(0, 40)}`;
+
+  async function setCardState(status: "snoozed" | "dismissed", until: string) {
+    setBusy(true);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("card_states").upsert(
+      { owner_id: user.id, card_key: cardKey, status, until },
+      { onConflict: "owner_id,card_key" }
+    );
+    setBusy(false);
+  }
+
+  async function snoozeUntil(until: string) {
+    await setCardState("snoozed", until);
+    setPickerOpen(false);
+    setNote(
+      `Snoozed. Back ${new Date(until + "T00:00:00").toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      })}.`
+    );
+    setTimeout(() => setHidden(true), 1600);
+  }
+
+  function daysFromNow(days: number): string {
+    return new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+  }
 
   async function act(a: NonNullable<BriefItem["actions"]>[number]) {
     if (a.kind === "confirm") {
       setNote(a.payload ?? "Done.");
       return;
     }
-    if (a.kind === "snooze" || a.kind === "dismiss") {
-      setBusy(true);
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      const days =
-        a.kind === "snooze" ? parseInt(a.payload ?? "14", 10) || 14 : 45;
-      const until = new Date(Date.now() + days * 86400000)
-        .toISOString()
-        .slice(0, 10);
-      const key = item.key ?? `card:${item.text.slice(0, 40)}`;
-      await supabase.from("card_states").upsert(
-        {
-          owner_id: user.id,
-          card_key: key,
-          status: a.kind === "snooze" ? "snoozed" : "dismissed",
-          until,
-        },
-        { onConflict: "owner_id,card_key" }
-      );
-      setBusy(false);
-      setNote(
-        a.kind === "snooze"
-          ? `Snoozed. Back on your radar ${new Date(until + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}.`
-          : "Marked under control. I'll stay out of it."
-      );
+    if (a.kind === "snooze") {
+      // Every snooze opens the picker; the user chooses when it comes back.
+      setPickerOpen(true);
+      return;
+    }
+    if (a.kind === "dismiss") {
+      await setCardState("dismissed", daysFromNow(45));
+      setNote("Marked under control. I'll stay out of it.");
+      setTimeout(() => setHidden(true), 1600);
       return;
     }
     if (a.kind === "we_talked" && a.personId) {
@@ -68,6 +94,10 @@ export default function BriefCard({ item }: { item: BriefItem }) {
     }
   }
 
+  if (hidden) return null;
+
+  const hasSnoozeAction = (item.actions ?? []).some((a) => a.kind === "snooze");
+
   return (
     <div className="flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
@@ -79,47 +109,97 @@ export default function BriefCard({ item }: { item: BriefItem }) {
         {note ? (
           <p className="mt-2.5 text-[13px] font-semibold text-brand">✓ {note}</p>
         ) : (
-          item.actions &&
-          item.actions.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {item.actions.map((a) =>
-                a.kind === "sms" || a.kind === "link" ? (
-                  <a
-                    key={a.label}
-                    href={
-                      a.kind === "sms"
-                        ? `sms:?&body=${encodeURIComponent(a.payload ?? "")}`
-                        : a.href ?? "#"
-                    }
-                    target={a.kind === "link" && a.href?.startsWith("https") ? "_blank" : undefined}
-                    rel={a.kind === "link" && a.href?.startsWith("https") ? "noreferrer" : undefined}
-                    className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold ${
-                      a.primary
-                        ? "bg-brand text-white"
-                        : "bg-blue-soft text-blue-ink"
-                    }`}
-                  >
-                    {a.label}
-                  </a>
-                ) : (
-                  <button
-                    key={a.label}
-                    disabled={busy}
-                    onClick={() => act(a)}
-                    className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold disabled:opacity-50 ${
-                      a.primary
-                        ? "bg-brand text-white"
-                        : "bg-blue-soft text-blue-ink"
-                    }`}
-                  >
-                    {a.label}
-                  </button>
-                )
-              )}
-            </div>
-          )
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {(item.actions ?? []).map((a) =>
+              a.kind === "sms" || a.kind === "link" ? (
+                <a
+                  key={a.label}
+                  href={
+                    a.kind === "sms"
+                      ? `sms:?&body=${encodeURIComponent(a.payload ?? "")}`
+                      : a.href ?? "#"
+                  }
+                  target={a.kind === "link" && a.href?.startsWith("https") ? "_blank" : undefined}
+                  rel={a.kind === "link" && a.href?.startsWith("https") ? "noreferrer" : undefined}
+                  className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold ${
+                    a.primary
+                      ? "bg-brand text-white"
+                      : "bg-blue-soft text-blue-ink"
+                  }`}
+                >
+                  {a.label}
+                </a>
+              ) : (
+                <button
+                  key={a.label}
+                  disabled={busy}
+                  onClick={() => act(a)}
+                  className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold disabled:opacity-50 ${
+                    a.primary
+                      ? "bg-brand text-white"
+                      : "bg-blue-soft text-blue-ink"
+                  }`}
+                >
+                  {a.label}
+                </button>
+              )
+            )}
+            {!hasSnoozeAction && item.key && (
+              <button
+                disabled={busy}
+                onClick={() => setPickerOpen(true)}
+                aria-label="Snooze this reminder"
+                className="rounded-lg px-2.5 py-2 text-[13px] font-semibold text-sub disabled:opacity-50"
+              >
+                Snooze
+              </button>
+            )}
+          </div>
         )}
       </div>
+
+      {pickerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/40"
+          onClick={(e) => e.target === e.currentTarget && setPickerOpen(false)}
+        >
+          <div className="w-full rounded-t-3xl bg-white p-6 pb-9">
+            <h3 className="text-lg font-bold">Remind me again...</h3>
+            <p className="mb-4 mt-1 text-sm text-sub">
+              It leaves your brief until then.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {SNOOZE_CHOICES.map((c) => (
+                <button
+                  key={c.days}
+                  disabled={busy}
+                  onClick={() => snoozeUntil(daysFromNow(c.days))}
+                  className="rounded-xl border-[1.5px] border-line px-4 py-2.5 text-sm font-medium disabled:opacity-50"
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-2 border-t border-line pt-4">
+              <span className="text-sm font-semibold">Or pick a date</span>
+              <input
+                type="date"
+                value={customDate}
+                min={daysFromNow(1)}
+                onChange={(e) => setCustomDate(e.target.value)}
+                className="flex-1 rounded-lg border-[1.5px] border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+              <button
+                disabled={busy || !customDate}
+                onClick={() => snoozeUntil(customDate)}
+                className="rounded-lg bg-brand px-4 py-2 text-[13px] font-semibold text-white disabled:opacity-50"
+              >
+                Set
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
