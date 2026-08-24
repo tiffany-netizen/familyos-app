@@ -36,10 +36,15 @@ const emptyKid = (): Kid => ({
 });
 
 const HOLIDAYS: { label: string; date: string }[] = [
+  { label: "Christmas", date: "2026-12-25" },
   { label: "Valentine's Day", date: "2027-02-14" },
   { label: "Mother's Day", date: "2027-05-09" },
   { label: "Father's Day", date: "2027-06-20" },
-  { label: "Christmas", date: "2026-12-25" },
+  { label: "Thanksgiving", date: "2026-11-26" },
+  { label: "Halloween", date: "2026-10-31" },
+  { label: "Easter", date: "2027-03-28" },
+  { label: "New Year's Eve", date: "2026-12-31" },
+  { label: "Fourth of July", date: "2027-07-04" },
 ];
 
 const WEEKDAYS: { n: number; l: string }[] = [
@@ -215,6 +220,8 @@ export default function Onboarding() {
   const [works, setWorks] = useState<string | null>(null);
   const [job, setJob] = useState("");
   const [stressNote, setStressNote] = useState("");
+  const [schoolSchedule, setSchoolSchedule] = useState(false);
+  const [schoolYearStart, setSchoolYearStart] = useState("");
   const [sweetText, setSweetText] = useState(true);
 
   // Kids
@@ -233,7 +240,12 @@ export default function Onboarding() {
   const [petKind, setPetKind] = useState("");
 
   // Rhythm
-  const [holidays, setHolidays] = useState<string[]>(HOLIDAYS.map((h) => h.label));
+  const [holidays, setHolidays] = useState<string[]>(
+    ["Christmas", "Valentine's Day", "Mother's Day", "Father's Day"]
+  );
+  const [customOccasions, setCustomOccasions] = useState<{ label: string; date: string }[]>([]);
+  const [occLabel, setOccLabel] = useState("");
+  const [occDate, setOccDate] = useState("");
   const [dateNightDays, setDateNightDays] = useState(14);
   const [mealNotes, setMealNotes] = useState("");
   const [ownsHome, setOwnsHome] = useState<boolean | null>(null);
@@ -315,6 +327,7 @@ export default function Onboarding() {
         works: works || null,
         job: job || null,
         stress_note: stressNote || null,
+        school_year_start: schoolSchedule && schoolYearStart ? schoolYearStart : null,
       });
     }
     kids.forEach((k) => {
@@ -347,7 +360,7 @@ export default function Onboarding() {
       const KEYS = [
         "owner_id","name","relationship","birthday","grade","school",
         "teacher_name","dismissal_time","interests","allergies","pediatrician",
-        "breed","works","job","stress_note",
+        "breed","works","job","stress_note","school_year_start",
       ];
       const normalized = people.map((p) =>
         Object.fromEntries(KEYS.map((k) => [k, p[k] ?? null]))
@@ -371,6 +384,9 @@ export default function Onboarding() {
       });
     HOLIDAYS.filter((h) => holidays.includes(h.label)).forEach((h) =>
       dates.push({ owner_id: user.id, label: h.label, date_value: h.date, lead_time_days: 30 })
+    );
+    customOccasions.forEach((o) =>
+      dates.push({ owner_id: user.id, label: o.label, date_value: o.date, lead_time_days: 30 })
     );
     customDates
       .split(",")
@@ -658,6 +674,29 @@ export default function Onboarding() {
               />
               <Mic onText={(t) => setStressNote((v) => (v ? v + " " : "") + t)} />
             </div>
+            <div>
+              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+                On a school-year schedule? (teacher, professor, school staff)
+              </span>
+              <div className="flex gap-2">
+                <Chip on={schoolSchedule} onClick={() => setSchoolSchedule(true)}>Yes</Chip>
+                <Chip on={!schoolSchedule} onClick={() => setSchoolSchedule(false)}>No</Chip>
+              </div>
+              {schoolSchedule && (
+                <div className="mt-3">
+                  <Field
+                    label="When does their school year start?"
+                    type="date"
+                    value={schoolYearStart}
+                    onChange={setSchoolYearStart}
+                  />
+                  <p className="mt-1.5 text-[13px] text-sub">
+                    Grading crunches land about every 3 months from this date. I
+                    time the support to those weeks.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           <NextBtn onClick={() => next()} />
         </section>
@@ -845,6 +884,46 @@ export default function Onboarding() {
                 {h.label}
               </Chip>
             ))}
+            {customOccasions.map((o) => (
+              <Chip
+                key={o.label}
+                on
+                onClick={() =>
+                  setCustomOccasions((os) => os.filter((x) => x.label !== o.label))
+                }
+              >
+                {o.label} ✕
+              </Chip>
+            ))}
+          </div>
+          <div className="mt-4 rounded-2xl border border-line bg-white p-3.5">
+            <p className="mb-2 text-sm font-semibold">Another occasion?</p>
+            <div className="flex gap-2">
+              <input
+                value={occLabel}
+                onChange={(e) => setOccLabel(e.target.value)}
+                placeholder="Diwali, Grandma's day..."
+                className="min-w-0 flex-1 rounded-lg border-[1.5px] border-line px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+              <input
+                type="date"
+                value={occDate}
+                onChange={(e) => setOccDate(e.target.value)}
+                className="rounded-lg border-[1.5px] border-line px-2 py-2 text-[13px] outline-none focus:border-brand"
+              />
+              <button
+                type="button"
+                disabled={!occLabel.trim() || !occDate}
+                onClick={() => {
+                  setCustomOccasions((os) => [...os, { label: occLabel.trim(), date: occDate }]);
+                  setOccLabel("");
+                  setOccDate("");
+                }}
+                className="rounded-lg bg-blue-soft px-3 py-2 text-[13px] font-semibold text-blue-ink disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
           </div>
           <NextBtn onClick={() => next()} />
         </section>
