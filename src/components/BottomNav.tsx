@@ -11,7 +11,7 @@ const tabs = [
   { href: "/today", label: "Today", icon: "sun" },
   { href: "/meals", label: "MealOS", icon: "pan" },
   { href: "/people", label: "PeopleOS", icon: "users" },
-  { href: "/todos", label: "To-dos", icon: "checks" },
+  { href: "/todos", label: "To-dOS", icon: "checks" },
   { href: "/home-hub", label: "HomeOS", icon: "home" },
   { href: "/gifts", label: "GiftOS", icon: "gift" },
 ];
