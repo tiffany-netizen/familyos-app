@@ -14,13 +14,15 @@ export default async function DigestPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: people }, { data: dates }, { data: events }, { data: routines }] =
+  const [{ data: people }, { data: dates }, { data: events }, { data: routines }, { data: profile }] =
     await Promise.all([
       supabase.from("people").select("*"),
       supabase.from("tracked_dates").select("*"),
       supabase.from("sports_events").select("*"),
       supabase.from("routines").select("*"),
+      supabase.from("profiles").select("time_format").eq("id", user.id).single(),
     ]);
+  const hour12 = profile?.time_format !== "24h";
 
   // Google Calendar events, when connected
   let calEvents: CalendarEvent[] = [];
@@ -60,7 +62,7 @@ export default async function DigestPage() {
       if (start >= d && start < new Date(d.getTime() + DAY)) {
         const time = e.all_day
           ? "all day"
-          : start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+          : start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12 });
         items.push(`${e.summary} · ${time} · calendar`);
       }
     });
@@ -70,6 +72,7 @@ export default async function DigestPage() {
         const time = ed.toLocaleTimeString("en-US", {
           hour: "numeric",
           minute: "2-digit",
+          hour12,
         });
         items.push(`${e.sport ?? "Practice"} · ${time}${e.location ? " · " + e.location : ""}`);
       }
