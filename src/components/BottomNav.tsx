@@ -4,16 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@/components/Icon";
 
-// The OS suffix marks the database sections; Today and To-dos are the
-// action surfaces. "HomeOS" also stops the house tab reading as a
-// back-to-homepage button.
+// The OS suffix marks the sections; Today is the action surface.
+// Gifts live inside PeopleOS (person pages + the Gift lists link),
+// so the tab bar stays six wide with the week up front.
+// "also" marks routes that light a tab up without being its href.
 const tabs = [
   { href: "/today", label: "Today", icon: "sun" },
-  { href: "/meals", label: "MealOS", icon: "pan" },
-  { href: "/people", label: "PeopleOS", icon: "users" },
+  { href: "/digest", label: "WeekOS", icon: "calendar", also: ["/weekly"] },
   { href: "/todos", label: "To-dOS", icon: "checks" },
+  { href: "/people", label: "PeopleOS", icon: "users", also: ["/gifts"] },
+  { href: "/meals", label: "MealOS", icon: "pan" },
   { href: "/home-hub", label: "HomeOS", icon: "home" },
-  { href: "/gifts", label: "GiftOS", icon: "gift" },
 ];
 
 export default function BottomNav() {
@@ -22,7 +23,9 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto flex max-w-md">
         {tabs.map((t) => {
-          const active = path.startsWith(t.href);
+          const active =
+            path.startsWith(t.href) ||
+            (t.also ?? []).some((a) => path.startsWith(a));
           return (
             <Link
               key={t.href}
