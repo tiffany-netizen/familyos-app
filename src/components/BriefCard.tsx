@@ -236,19 +236,20 @@ export default function BriefCard({ item }: { item: BriefItem }) {
                 Snooze
               </button>
             )}
-            {!hasDismissAction && item.key && (
-              <button
-                disabled={busy}
-                onClick={() => act({ label: "Dismiss", kind: "dismiss" })}
-                aria-label="Dismiss this card"
-                className="rounded-lg px-2.5 py-2 text-[13px] font-semibold text-sub disabled:opacity-50"
-              >
-                Dismiss
-              </button>
-            )}
           </div>
         )}
       </div>
+
+      {item.key && !note && !hasDismissAction && (
+        <button
+          disabled={busy}
+          onClick={() => act({ label: "Dismiss", kind: "dismiss" })}
+          aria-label="Dismiss this card"
+          className="-mr-1 -mt-1 flex h-7 w-7 flex-shrink-0 items-start justify-center self-start pt-0.5 text-[15px] leading-none text-sub/50 disabled:opacity-40"
+        >
+          ✕
+        </button>
+      )}
 
       {pickerOpen && (
         <div
