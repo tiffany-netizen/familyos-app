@@ -8,7 +8,10 @@ export function googleEnabled() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
-export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+// calendar.events covers reading AND creating events. Tokens granted under
+// the old readonly scope keep working for reads; event creation with one of
+// those returns 403 and the API surfaces needs_reconnect.
+export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 export function authUrl(origin: string, state: string): string {
   const p = new URLSearchParams({
@@ -148,4 +151,83 @@ export async function listUpcomingEvents(
       end: e.end?.dateTime ?? e.end?.date ?? "",
       all_day: Boolean(e.start?.date && !e.start?.dateTime),
     }));
+}
+
+const BYDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+export type NewEvent = {
+  title: string;
+  date: string; // YYYY-MM-DD of the first (or only) occurrence
+  time?: string; // "HH:MM"; omitted = all-day
+  durationMin?: number;
+  days?: number[]; // 0=Sun..6=Sat; non-empty = weekly recurrence
+  reminders?: number[]; // minutes before start, popup
+  description?: string;
+};
+
+// Creates an event on the user's primary calendar, with reminders attached.
+// Returns needs_reconnect when the stored token predates write access.
+export async function createCalendarEvent(
+  accessToken: string,
+  ev: NewEvent
+): Promise<{ ok: true; link: string | null } | { ok: false; error: string }> {
+  const body: Record<string, unknown> = {
+    summary: ev.title,
+    description: ev.description || "Added by FamilyOS",
+  };
+  if (ev.time) {
+    const startIso = `${ev.date}T${ev.time}:00`;
+    const [h, m] = ev.time.split(":").map((x) => parseInt(x, 10));
+    const endMinutes = h * 60 + m + (ev.durationMin ?? 60);
+    const endH = Math.floor(endMinutes / 60) % 24;
+    const endM = endMinutes % 60;
+    const endDate =
+      endMinutes >= 1440
+        ? new Date(new Date(ev.date + "T00:00:00").getTime() + 86400000)
+            .toISOString()
+            .slice(0, 10)
+        : ev.date;
+    body.start = { dateTime: startIso, timeZone: "America/New_York" };
+    body.end = {
+      dateTime: `${endDate}T${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}:00`,
+      timeZone: "America/New_York",
+    };
+  } else {
+    const next = new Date(new Date(ev.date + "T00:00:00").getTime() + 86400000)
+      .toISOString()
+      .slice(0, 10);
+    body.start = { date: ev.date };
+    body.end = { date: next };
+  }
+  if (ev.days && ev.days.length) {
+    body.recurrence = [
+      `RRULE:FREQ=WEEKLY;BYDAY=${[...ev.days].sort().map((n) => BYDAY[n]).join(",")}`,
+    ];
+  }
+  if (ev.reminders && ev.reminders.length) {
+    body.reminders = {
+      useDefault: false,
+      overrides: ev.reminders
+        .slice(0, 5)
+        .map((minutes) => ({ method: "popup", minutes: Math.max(0, Math.round(minutes)) })),
+    };
+  }
+  const res = await fetch(
+    "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }
+  );
+  if (res.status === 403) return { ok: false, error: "needs_reconnect" };
+  if (!res.ok) {
+    console.error("[google] create event", res.status, (await res.text()).slice(0, 200));
+    return { ok: false, error: "failed" };
+  }
+  const data = (await res.json()) as { htmlLink?: string };
+  return { ok: true, link: data.htmlLink ?? null };
 }
