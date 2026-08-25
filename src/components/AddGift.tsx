@@ -52,8 +52,10 @@ export default function AddGift({
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
         >
           <div className="w-full rounded-t-3xl bg-white p-6 pb-9">
-            <h3 className="mb-4 text-lg font-bold">Add a gift idea</h3>
-            <div className="mb-3 flex flex-wrap gap-2">
+            <h3 className="mb-4 text-lg font-bold">
+              {people.length === 1 ? `Gift idea for ${people[0].name.split(" ")[0]}` : "Add a gift idea"}
+            </h3>
+            <div className={`mb-3 flex flex-wrap gap-2 ${people.length === 1 ? "hidden" : ""}`}>
               {people.map((p) => (
                 <button
                   key={p.id}
