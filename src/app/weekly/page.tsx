@@ -15,14 +15,14 @@ export default async function WeeklyPage() {
   const [{ data: routines }, { data: trips }, { data: kids }] = await Promise.all([
     supabase
       .from("routines")
-      .select("id,kind,label,days,day_times,notify")
+      .select("id,kind,label,days,day_times,notify,end_date")
       .order("created_at"),
     supabase
       .from("trips")
       .select("id,kind,destination,start_date,end_date")
       .or(`end_date.gte.${today},end_date.is.null`)
       .order("start_date"),
-    supabase.from("people").select("id").eq("relationship", "child").limit(1),
+    supabase.from("people").select("id,name,school,school_address").eq("relationship", "child"),
   ]);
 
   return (
@@ -40,6 +40,11 @@ export default async function WeeklyPage() {
         routines={routines ?? []}
         trips={trips ?? []}
         hasKids={(kids ?? []).length > 0}
+        kids={(kids ?? []).map((k) => ({
+          name: String(k.name),
+          school: (k.school as string | null) ?? null,
+          school_address: (k.school_address as string | null) ?? null,
+        }))}
       />
       <BottomNav />
     </main>
