@@ -56,7 +56,8 @@ Return ONLY JSON, no prose around it:
       "until": "HH:MM (optional, omit if not time-bound today)",
       "event_date": "YYYY-MM-DD (REQUIRED on any item tied to a dated occasion: birthdays, tracked dates, sports events, calendar events, trip starts. Omit on undated items like call gaps.)",
       "event_title": "REQUIRED whenever event_date is present: a clean 2-4 word calendar event name like 'Anniversary' or 'Carol's birthday' or 'Emma's soccer game'. A name only. Never relative timing like 'in 31 days', never a sentence.",
-      "text": "1-2 sentences, concrete and practical",
+      "headline": "REQUIRED: 2-5 word skimmable label for the collapsed card, with a time when there is one. Examples: 'School run · 8:40 AM', 'SF trip · 7 days', 'Anniversary · 30 days', 'Dinner plan tonight'. Never a sentence.",
+      "text": "1-2 sentences of detail shown when the card is opened, concrete and practical",
       "meta": "role · context, e.g. 'dad · today's checklist'",
       "role": "dad|husband|son|home|friend|personal",
       "actions": [
@@ -118,6 +119,7 @@ function sanitize(raw: AiBrief | null): AiBrief | null {
     const until = (it as BriefItem).until;
     const eventDate = (it as BriefItem).event_date;
     const eventTitle = (it as BriefItem).event_title;
+    const headline = (it as BriefItem).headline;
     items.push({
       icon: typeof it.icon === "string" ? it.icon.slice(0, 8) : "•",
       key: slug((it as BriefItem).key),
@@ -132,6 +134,10 @@ function sanitize(raw: AiBrief | null): AiBrief | null {
       event_title:
         typeof eventTitle === "string" && eventTitle.trim()
           ? deDash(eventTitle.trim()).slice(0, 60)
+          : undefined,
+      headline:
+        typeof headline === "string" && headline.trim()
+          ? deDash(headline.trim()).slice(0, 48)
           : undefined,
       text: deDash(it.text),
       meta: deDash(typeof it.meta === "string" ? it.meta : ""),
