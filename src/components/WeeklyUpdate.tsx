@@ -15,6 +15,7 @@ type Routine = {
   days: string;
   day_times: Record<string, string> | null;
   notify: string | null;
+  end_date: string | null;
 };
 
 type TripRow = {
@@ -34,12 +35,130 @@ const WEEKDAYS = [
 ];
 const ALLDAYS = [...WEEKDAYS, { n: 6, l: "Sat" }, { n: 0, l: "Sun" }];
 
+// Google Calendar template link for a weekly recurring event: prefilled
+// title, first occurrence, and RRULE. Google's URL can't preset reminders,
+// so the details text nudges the user to add night-before and 1-hour ones
+// while the editor is open. FamilyOS itself still does the night-before
+// plan and day-of item in the brief.
+const BYDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+function recurringCalUrl(
+  title: string,
+  days: number[],
+  time: string,
+  durationMin: number
+): string | null {
+  if (days.length === 0) return null;
+  const now = new Date();
+  let start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    if (days.includes(d.getDay())) {
+      start = d;
+      break;
+    }
+  }
+  const [h, m] = (time || "08:00").split(":").map((x) => parseInt(x, 10));
+  start.setHours(isNaN(h) ? 8 : h, isNaN(m) ? 0 : m, 0, 0);
+  const end = new Date(start.getTime() + durationMin * 60000);
+  const fmt = (x: Date) =>
+    `${x.getFullYear()}${String(x.getMonth() + 1).padStart(2, "0")}${String(
+      x.getDate()
+    ).padStart(2, "0")}T${String(x.getHours()).padStart(2, "0")}${String(
+      x.getMinutes()
+    ).padStart(2, "0")}00`;
+  const recur = `RRULE:FREQ=WEEKLY;BYDAY=${[...days]
+    .sort()
+    .map((n) => BYDAY[n])
+    .join(",")}`;
+  const details =
+    "From FamilyOS. Tip: add two notifications while you're here, one the night before and one 1 hour before.";
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+    title
+  )}&dates=${fmt(start)}/${fmt(end)}&recur=${encodeURIComponent(
+    recur
+  )}&details=${encodeURIComponent(details)}`;
+}
+
+// One tap when the calendar is connected with write access: FamilyOS
+// creates the recurring event itself, reminders included (night before at
+// 8pm + 1 hour ahead). Otherwise it falls back to Google's prefilled
+// editor in a new tab.
+function CalAdd({
+  title,
+  days,
+  time,
+  durationMin,
+  location,
+  description,
+}: {
+  title: string;
+  days: number[];
+  time: string;
+  durationMin: number;
+  location?: string;
+  description?: string;
+}) {
+  const [state, setState] = useState<"idle" | "busy" | "done" | "fallback">(
+    "idle"
+  );
+  if (days.length === 0) return null;
+  async function add() {
+    setState("busy");
+    try {
+      const res = await fetch("/api/google/event", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title, days, time, durationMin, location, description }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.ok) {
+        setState("done");
+        return;
+      }
+    } catch {}
+    setState("fallback");
+    let url = recurringCalUrl(title, days, time, durationMin);
+    if (url && location) url += `&location=${encodeURIComponent(location)}`;
+    if (url) window.open(url, "_blank", "noreferrer");
+  }
+  if (state === "done") {
+    return (
+      <p className="mt-2 text-[13px] font-semibold text-brand">
+        ✓ On your Google Calendar with reminders, night before and 1 hour
+        ahead.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={add}
+        disabled={state === "busy"}
+        className="text-[13px] font-semibold text-blue-ink disabled:opacity-60"
+      >
+        {state === "busy"
+          ? "Adding..."
+          : "Add to Google Calendar (repeats weekly) ›"}
+      </button>
+      {state === "fallback" && (
+        <p className="mt-1 text-xs text-sub">
+          Opened Google&apos;s editor instead. Connect (or reconnect) your
+          calendar in your profile and this becomes one tap with reminders
+          attached.
+        </p>
+      )}
+    </div>
+  );
+}
+
 type Activity = {
   id?: string;
   label: string;
   days: number[];
   time: string;
   remind: string;
+  end: string;
 };
 
 function DayChips({
@@ -75,15 +194,39 @@ function DayChips({
   );
 }
 
+type Kid = { name: string; school: string | null; school_address: string | null };
+
 export default function WeeklyUpdate({
   routines,
   trips,
   hasKids = true,
+  kids = [],
 }: {
   routines: Routine[];
   trips: TripRow[];
   hasKids?: boolean;
+  kids?: Kid[];
 }) {
+  const schoolRunTitle =
+    kids.length === 1
+      ? `Take ${kids[0].name.split(" ")[0]} to school`
+      : "Take the kids to school";
+  // School addresses drive the calendar event: one shared school becomes
+  // the event location; different schools put the first in the location
+  // and list every stop in the event body.
+  const schooled = kids.filter((k) => k.school_address);
+  const uniqueSchools = [...new Set(schooled.map((k) => k.school_address as string))];
+  const schoolLocation = uniqueSchools[0];
+  const schoolDescription =
+    uniqueSchools.length > 1
+      ? "Stops: " +
+        schooled
+          .map(
+            (k) =>
+              `${k.name.split(" ")[0]} at ${k.school ?? "school"} (${k.school_address})`
+          )
+          .join(" | ")
+      : undefined;
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -104,6 +247,7 @@ export default function WeeklyUpdate({
         days: r.days.split(",").map(Number),
         time: r.day_times ? (Object.values(r.day_times)[0] ?? "") : "",
         remind: r.notify ?? "",
+        end: r.end_date ?? "",
       }))
   );
   const [extras, setExtras] = useState("");
@@ -197,6 +341,7 @@ export default function WeeklyUpdate({
           days: [...a.days].sort().join(","),
           day_times: a.time ? dayTimes : null,
           notify: a.remind || null,
+          end_date: a.end || null,
         });
       }
       if (rows.length) {
@@ -242,12 +387,21 @@ export default function WeeklyUpdate({
             School drop-off / pick-up days
           </p>
           <DayChips days={schoolDays} setDays={setSchoolDays} set={WEEKDAYS} />
+          <CalAdd
+            title={schoolRunTitle}
+            days={schoolDays}
+            time="08:00"
+            durationMin={30}
+            location={schoolLocation}
+            description={schoolDescription}
+          />
         </div>
       )}
 
       <div>
         <p className="mb-2 text-sm font-semibold">Dinner duty nights</p>
         <DayChips days={dinnerDays} setDays={setDinnerDays} set={WEEKDAYS} />
+        <CalAdd title="Dinner duty" days={dinnerDays} time="18:00" durationMin={60} />
       </div>
 
       <div>
@@ -296,12 +450,29 @@ export default function WeeklyUpdate({
                     className="ml-1 rounded-lg border-[1.5px] border-line px-2 py-1.5 text-[13px] outline-none focus:border-brand"
                   />
                 </label>
+                <label>
+                  Ends{" "}
+                  <input
+                    type="date"
+                    value={a.end}
+                    onChange={(e) => setActivity(i, { end: e.target.value })}
+                    className="ml-1 rounded-lg border-[1.5px] border-line px-2 py-1.5 text-[13px] outline-none focus:border-brand"
+                  />
+                </label>
               </div>
+              {a.label.trim() && (
+                <CalAdd
+                  title={a.label.trim()}
+                  days={a.days}
+                  time={a.time || "17:00"}
+                  durationMin={60}
+                />
+              )}
             </div>
           ))}
           <button
             onClick={() =>
-              setActivities((as) => [...as, { label: "", days: [], time: "", remind: "" }])
+              setActivities((as) => [...as, { label: "", days: [], time: "", remind: "", end: "" }])
             }
             className="rounded-lg bg-blue-soft px-3.5 py-2 text-[13px] font-semibold text-blue-ink"
           >
@@ -331,7 +502,8 @@ export default function WeeklyUpdate({
               className="flex items-center justify-between rounded-xl border border-line bg-white px-4 py-3 text-sm"
             >
               <span>
-                {t.kind === "work" ? "💼" : "🧳"} <b>{t.destination}</b>
+                <b>{t.destination}</b>
+                <span className="ml-1.5 text-xs uppercase tracking-wide text-sub">{t.kind}</span>
                 {t.start_date ? ` · ${t.start_date}` : ""}
                 {t.end_date && t.end_date !== t.start_date ? ` → ${t.end_date}` : ""}
               </span>

@@ -109,7 +109,7 @@ export default function AddressField({
               }}
               className="block w-full px-4 py-2.5 text-left text-sm hover:bg-blue-soft"
             >
-              📍 {s}
+              {s}
             </button>
           ))}
         </div>

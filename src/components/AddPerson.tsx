@@ -8,6 +8,7 @@ const RELS = [
   ["spouse", "Spouse"],
   ["child", "Kid"],
   ["parent", "Parent"],
+  ["sibling", "Sibling"],
   ["friend", "Friend"],
   ["pet", "Pet"],
   ["other", "Other"],
@@ -18,6 +19,7 @@ export default function AddPerson() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [rel, setRel] = useState("friend");
+  const [relOther, setRelOther] = useState("");
   const [birthday, setBirthday] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -32,13 +34,17 @@ export default function AddPerson() {
     await supabase.from("people").insert({
       owner_id: user.id,
       name: name.trim(),
-      relationship: rel,
+      relationship:
+        rel === "other" && relOther.trim()
+          ? relOther.trim().toLowerCase()
+          : rel,
       birthday: birthday || null,
     });
     setBusy(false);
     setOpen(false);
     setName("");
     setBirthday("");
+    setRelOther("");
     router.refresh();
   }
 
@@ -82,6 +88,14 @@ export default function AddPerson() {
                 </button>
               ))}
             </div>
+            {rel === "other" && (
+              <input
+                value={relOther}
+                onChange={(e) => setRelOther(e.target.value)}
+                placeholder="Who are they? (cousin, coach, neighbor...)"
+                className="mb-3 w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
+              />
+            )}
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-sub">
               Birthday (optional)
             </label>

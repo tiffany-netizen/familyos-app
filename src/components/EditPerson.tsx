@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,6 +12,7 @@ type Person = {
   gender: string | null;
   grade: string | null;
   school: string | null;
+  school_address: string | null;
   teacher_name: string | null;
   best_friend: string | null;
   clothing_size: string | null;
@@ -61,11 +62,70 @@ const BY_REL: Record<string, [keyof Person, string, string][]> = {
   other: [],
 };
 
-export default function EditPerson({ person }: { person: Person }) {
+export default function EditPerson({
+  person,
+  homeAddress = "",
+}: {
+  person: Person;
+  homeAddress?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // School search: type a name, we find the actual school near home
+  // (OpenStreetMap, biased to the home address) and keep its address for
+  // calendar events.
+  const [schoolAddress, setSchoolAddress] = useState(person.school_address ?? "");
+  const [schoolSugs, setSchoolSugs] = useState<{ name: string; address: string }[]>([]);
+  const [schoolSearching, setSchoolSearching] = useState(false);
+  const schoolTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const homeGeo = useRef<{ lat: number; lon: number } | null | undefined>(undefined);
+
+  async function searchSchools(q: string) {
+    if (q.trim().length < 3) {
+      setSchoolSugs([]);
+      return;
+    }
+    setSchoolSearching(true);
+    try {
+      if (homeGeo.current === undefined) {
+        homeGeo.current = null;
+        if (homeAddress.trim()) {
+          const geo = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(homeAddress.trim())}`
+          ).then((r) => r.json());
+          if (geo?.[0])
+            homeGeo.current = { lat: parseFloat(geo[0].lat), lon: parseFloat(geo[0].lon) };
+        }
+      }
+      const h = homeGeo.current;
+      const vb = h
+        ? `&viewbox=${h.lon - 0.5},${h.lat + 0.5},${h.lon + 0.5},${h.lat - 0.5}&bounded=1`
+        : "";
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(
+          q.toLowerCase().includes("school") ? q : q + " school"
+        )}${vb}`
+      ).then((r) => r.json());
+      setSchoolSugs(
+        ((res ?? []) as { display_name: string }[]).map((r) => ({
+          name: r.display_name.split(",")[0],
+          address: r.display_name,
+        }))
+      );
+    } catch {
+      setSchoolSugs([]);
+    }
+    setSchoolSearching(false);
+  }
+
+  function onSchoolType(v: string) {
+    setForm((f) => ({ ...f, school: v }));
+    setSchoolAddress("");
+    if (schoolTimer.current) clearTimeout(schoolTimer.current);
+    schoolTimer.current = setTimeout(() => searchSchools(v), 500);
+  }
   const [form, setForm] = useState<Record<string, string>>(() => {
     const f: Record<string, string> = {};
     [...COMMON, ...(BY_REL[person.relationship] ?? [])].forEach(([k]) => {
@@ -84,6 +144,9 @@ export default function EditPerson({ person }: { person: Person }) {
     fields.forEach(([k]) => {
       patch[k] = form[k]?.trim() || null;
     });
+    if (person.relationship === "child") {
+      patch.school_address = schoolAddress.trim() || null;
+    }
     await supabase.from("people").update(patch).eq("id", person.id);
     setBusy(false);
     setOpen(false);
@@ -116,7 +179,50 @@ export default function EditPerson({ person }: { person: Person }) {
           <div className="max-h-[85vh] w-full overflow-y-auto rounded-t-3xl bg-white p-6 pb-9">
             <h3 className="mb-4 text-lg font-bold">Edit {person.name}</h3>
             <div className="space-y-3">
-              {fields.map(([k, label, type]) => (
+              {fields.map(([k, label, type]) =>
+                k === "school" ? (
+                  <label key={k} className="block">
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-sub">
+                      {label}
+                    </span>
+                    <input
+                      type="text"
+                      value={form.school ?? ""}
+                      onChange={(e) => onSchoolType(e.target.value)}
+                      placeholder="Type the school's name..."
+                      className="w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
+                    />
+                    {schoolSearching && (
+                      <span className="mt-1 block text-xs text-sub">
+                        Searching near home...
+                      </span>
+                    )}
+                    {schoolSugs.length > 0 && (
+                      <div className="mt-1 divide-y divide-line rounded-xl border border-line bg-white">
+                        {schoolSugs.map((sug) => (
+                          <button
+                            key={sug.address}
+                            type="button"
+                            onClick={() => {
+                              setForm((f) => ({ ...f, school: sug.name }));
+                              setSchoolAddress(sug.address);
+                              setSchoolSugs([]);
+                            }}
+                            className="block w-full px-3 py-2.5 text-left text-[13px]"
+                          >
+                            <span className="font-semibold">{sug.name}</span>
+                            <span className="block text-xs text-sub">{sug.address}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {schoolAddress && (
+                      <span className="mt-1 block text-xs text-brand">
+                        ✓ {schoolAddress}
+                      </span>
+                    )}
+                  </label>
+                ) : (
                 <label key={k} className="block">
                   <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-sub">
                     {label}
@@ -130,7 +236,8 @@ export default function EditPerson({ person }: { person: Person }) {
                     className="w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
                   />
                 </label>
-              ))}
+                )
+              )}
             </div>
             <button
               onClick={save}

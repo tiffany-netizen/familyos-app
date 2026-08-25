@@ -10,6 +10,7 @@ export default function TodoList({ todos }: { todos: Todo[] }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [smartNote, setSmartNote] = useState<string | null>(null);
 
   async function toggle(t: Todo) {
     const supabase = createClient();
@@ -25,12 +26,29 @@ export default function TodoList({ todos }: { todos: Todo[] }) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase
-      .from("todos")
-      .insert({ owner_id: user.id, title: title.trim() });
+    const added = title.trim();
+    await supabase.from("todos").insert({ owner_id: user.id, title: added });
     setTitle("");
     setBusy(false);
     router.refresh();
+
+    // Active list, never a dead checklist: the AI reads each new to-do and
+    // queues a dashboard follow-up when finishing it should feed the
+    // database ("find a babysitter" -> that sitter belongs in People).
+    try {
+      const res = await fetch("/api/ai/todo", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: added }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.queued) {
+        setSmartNote(
+          "Noted. I'll follow up on your Today screen so what comes out of this lands in the system."
+        );
+        setTimeout(() => setSmartNote(null), 5000);
+      }
+    } catch {}
   }
 
   async function clearDone() {
@@ -64,6 +82,12 @@ export default function TodoList({ todos }: { todos: Todo[] }) {
           Add
         </button>
       </div>
+
+      {smartNote && (
+        <p className="mt-3 rounded-xl bg-brand-soft px-4 py-3 text-[13px] font-medium text-brand">
+          {smartNote}
+        </p>
+      )}
 
       <div className="mt-4 rounded-2xl border border-line bg-white px-4 shadow-sm">
         {open.length === 0 && done.length === 0 && (

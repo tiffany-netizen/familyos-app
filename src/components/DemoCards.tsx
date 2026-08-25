@@ -4,6 +4,7 @@ import DateNightPlanner from "@/components/DateNightPlanner";
 import { useState } from "react";
 import Link from "next/link";
 import { openTableUrl } from "@/lib/brief";
+import Icon from "@/components/Icon";
 
 const FALLBACK: Record<string, { name: string; dist: string }[]> = {
   Cheap: [
@@ -67,9 +68,15 @@ export function DateNightCard({
       let lon: number;
       // The home town from onboarding wins; browser location is the fallback.
       if (homeCity && homeCity.trim()) {
-        const geo = await fetch(
+        // Full address first; if the geocoder whiffs, retry with just the city.
+        let geo = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(homeCity.trim())}`
         ).then((r) => r.json());
+        if (!geo?.[0]) {
+          geo = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(cityOf(homeCity))}`
+          ).then((r) => r.json());
+        }
         if (!geo?.[0]) throw new Error("geocode");
         lat = parseFloat(geo[0].lat);
         lon = parseFloat(geo[0].lon);
@@ -127,8 +134,8 @@ export function DateNightCard({
   return (
     <div className="rounded-2xl border border-line bg-white p-4 shadow-sm">
       <div className="flex gap-3">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-soft text-lg">
-          ❤️
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
+          <Icon name="heart" />
         </div>
         <div className="flex-1">
           <p className="text-[15px] leading-snug">
@@ -145,6 +152,15 @@ export function DateNightCard({
                 ? "sample list (location unavailable)"
                 : "standing priority"}
           </p>
+          {locState === "fallback" && !(homeCity && homeCity.trim()) && (
+            <p className="mt-1 text-xs text-sub">
+              Add your home address in{" "}
+              <Link href="/profile" className="font-semibold text-blue-ink">
+                your profile
+              </Link>{" "}
+              and picks come from your real area.
+            </p>
+          )}
 
           <DateNightPlanner />
           {booked ? (
@@ -174,7 +190,7 @@ export function DateNightCard({
                   onClick={useLocation}
                   className="mt-3 rounded-lg bg-blue-soft px-3.5 py-2 text-[13px] font-semibold text-blue-ink"
                 >
-                  📍 {homeCity && homeCity.trim() ? `Find restaurants near home (${cityOf(homeCity)})` : "Find restaurants near me"}
+                  {homeCity && homeCity.trim() ? `Find restaurants near home (${cityOf(homeCity)})` : "Find restaurants near me"}
                 </button>
               )}
               {locState === "finding" && (
@@ -213,14 +229,19 @@ export function DateNightCard({
                   ))}
                 </div>
               )}
-              <a
-                href={`sms:?&body=${encodeURIComponent(
-                  `Thinking about you. Date night soon? ❤️`
-                )}`}
-                className="mt-3 inline-block text-[13px] font-semibold text-blue-ink"
-              >
-                Or just send {spouseName} a sweet text ›
-              </a>
+              <div className="mt-3 flex flex-wrap gap-x-4">
+                <a
+                  href={`sms:?&body=${encodeURIComponent(
+                    `Thinking about you. Date night soon? ❤️`
+                  )}`}
+                  className="text-[13px] font-semibold text-blue-ink"
+                >
+                  Or just send {spouseName} a sweet text ›
+                </a>
+                <Link href="/sitter" className="text-[13px] font-semibold text-blue-ink">
+                  Sitter brief ›
+                </Link>
+              </div>
             </>
           )}
         </div>
@@ -233,8 +254,8 @@ export function HealthCard() {
   const [connected, setConnected] = useState(false);
   return (
     <div className="flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-soft text-lg">
-        😴
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
+        <Icon name="bell" />
       </div>
       <div className="flex-1">
         <p className="text-[15px] leading-snug">
@@ -262,8 +283,8 @@ export function HealthCard() {
 export function CheckinCard() {
   return (
     <div className="flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-soft text-lg">
-        ✍️
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
+        <Icon name="clipboard" />
       </div>
       <div className="flex-1">
         <p className="text-[15px] leading-snug">
@@ -296,7 +317,7 @@ export function ReferralCard() {
   async function share() {
     const url = "https://familyos-lac.vercel.app";
     const text =
-      "I've been using FamilyOS — it remembers birthdays, gift ideas, and everything else so I don't have to. ";
+      "I've been using FamilyOS. It remembers birthdays, gift ideas, and everything else so I don't have to. ";
     if (navigator.share) {
       try {
         await navigator.share({ title: "FamilyOS", text, url });

@@ -89,7 +89,7 @@ export default function FollowupCard() {
 
   if (!fu) return null;
 
-  const isText = ["nickname", "address", "relationship", "interest"].includes(fu.kind);
+  const isText = ["nickname", "address", "relationship", "interest", "todo", "contact"].includes(fu.kind);
 
   return (
     <div className="rounded-2xl border-[1.5px] border-brand-soft bg-brand-soft/30 p-4 shadow-sm">

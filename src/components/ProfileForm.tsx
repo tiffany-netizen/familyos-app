@@ -16,6 +16,11 @@ type Profile = {
   sweet_text_optin: boolean | null;
   brief_email: boolean | null;
   wants_gift_lists: boolean | null;
+  meal_notes: string | null;
+  owns_home: boolean | null;
+  brief_time: string | null;
+  grocery_store: string | null;
+  time_format: string | null;
 };
 
 function Chip({
@@ -51,6 +56,11 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
   const [sweetText, setSweetText] = useState(Boolean(initial.sweet_text_optin));
   const [briefEmail, setBriefEmail] = useState(initial.brief_email !== false);
   const [giftLists, setGiftLists] = useState(initial.wants_gift_lists !== false);
+  const [mealNotes, setMealNotes] = useState(initial.meal_notes ?? "");
+  const [ownsHome, setOwnsHome] = useState<boolean | null>(initial.owns_home);
+  const [briefTime, setBriefTime] = useState(initial.brief_time ?? "07:00");
+  const [groceryLinks, setGroceryLinks] = useState(initial.grocery_store !== "none");
+  const [timeFormat, setTimeFormat] = useState(initial.time_format === "24h" ? "24h" : "12h");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +87,11 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         sweet_text_optin: sweetText,
         brief_email: briefEmail,
         wants_gift_lists: giftLists,
+        meal_notes: mealNotes.trim() || null,
+        owns_home: ownsHome,
+        brief_time: briefTime || "07:00",
+        grocery_store: groceryLinks ? "instacart" : "none",
+        time_format: timeFormat,
       })
       .eq("id", user.id);
     if (e) {
@@ -165,6 +180,64 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
           <Chip on={!briefEmail} onClick={() => setBriefEmail(false)}>Off</Chip>
         </div>
       </div>
+
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Brief arrival time
+        </span>
+        <input
+          type="time"
+          value={briefTime}
+          onChange={(e) => setBriefTime(e.target.value)}
+          className="w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
+        />
+        <span className="mt-1.5 block text-[13px] text-sub">
+          Email currently goes out at 7:00 AM ET; this takes over as delivery
+          windows roll out.
+        </span>
+      </label>
+
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Clock format
+        </span>
+        <div className="flex gap-2">
+          <Chip on={timeFormat === "12h"} onClick={() => setTimeFormat("12h")}>AM / PM</Chip>
+          <Chip on={timeFormat === "24h"} onClick={() => setTimeFormat("24h")}>24-hour</Chip>
+        </div>
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Grocery ordering links (Instacart)
+        </span>
+        <div className="flex gap-2">
+          <Chip on={groceryLinks} onClick={() => setGroceryLinks(true)}>Show</Chip>
+          <Chip on={!groceryLinks} onClick={() => setGroceryLinks(false)}>Hide</Chip>
+        </div>
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Own or rent your home
+        </span>
+        <div className="flex gap-2">
+          <Chip on={ownsHome === true} onClick={() => setOwnsHome(true)}>Own</Chip>
+          <Chip on={ownsHome === false} onClick={() => setOwnsHome(false)}>Rent</Chip>
+        </div>
+      </div>
+
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Family food rules
+        </span>
+        <textarea
+          value={mealNotes}
+          onChange={(e) => setMealNotes(e.target.value)}
+          placeholder="No shellfish, Emma won't touch mushrooms, taco night always works..."
+          className="min-h-20 w-full rounded-xl border-[1.5px] border-line p-4 outline-none focus:border-brand"
+        />
+      </label>
 
       <div>
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
