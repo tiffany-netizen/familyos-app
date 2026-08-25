@@ -49,6 +49,9 @@ export type BriefItem = {
   meta: string;
   role: string;
   key?: string;
+  until?: string; // "HH:MM" local; the feed hides the card after this time
+  event_date?: string; // "YYYY-MM-DD"; snoozes never reach past this date
+  event_title?: string; // clean calendar-event name ("Anniversary"), no relative timing
   actions?: BriefAction[];
 };
 
@@ -79,7 +82,10 @@ type Routine = {
   days: string;
   day_times?: Record<string, string> | null;
 };
-type Profile = { sweet_text_optin?: boolean | null } | null;
+type Profile = {
+  sweet_text_optin?: boolean | null;
+  grocery_store?: string | null;
+} | null;
 
 export function buildBrief(
   people: Person[],
@@ -103,7 +109,8 @@ export function buildBrief(
         text: "School run today. You're on drop-off / pick-up duty.",
         meta: "dad · today's checklist",
         role: "dad",
-        actions: [{ label: "Got it", kind: "confirm", payload: "Checked off for today.", primary: true }],
+        key: "school-run",
+        until: "16:00",
       });
     } else if (r.kind === "dinner") {
       items.push({
@@ -111,19 +118,25 @@ export function buildBrief(
         text: "Dinner's on you tonight. Recipe or groceries?",
         meta: "home · today's checklist",
         role: "home",
+        key: "dinner",
+        until: "20:00",
         actions: [
           {
-            label: "Recipe ideas",
+            label: "Recipe box",
             kind: "link",
-            href: "https://www.allrecipes.com/search?q=easy+weeknight+dinner",
+            href: "/meals",
             primary: true,
           },
-          {
-            label: "Order groceries",
-            kind: "link",
-            href: "https://www.instacart.com/store",
-          },
-          { label: "Got it", kind: "confirm", payload: "Checked off." },
+          ...(profile?.grocery_store === "none"
+            ? []
+            : [
+                {
+                  label: "Order groceries",
+                  kind: "link",
+                  href: "https://www.instacart.com/store",
+                } as BriefAction,
+              ]),
+          { label: "Handled", kind: "dismiss" },
         ],
       });
     } else {
@@ -133,7 +146,7 @@ export function buildBrief(
         text: `${r.label ?? "Weekend activity"} today${time ? ` at ${time}` : ""}.`,
         meta: "family · your week",
         role: "dad",
-        actions: [{ label: "Got it", kind: "confirm", payload: "On the radar.", primary: true }],
+        until: time && /^\d{2}:\d{2}$/.test(time) ? time : undefined,
       });
     }
   }
@@ -197,9 +210,12 @@ export function buildBrief(
   // Birthdays coming up
   for (const p of people) {
     if (!p.birthday) continue;
-    const days = daysUntil(nextOccurrence(p.birthday, true, today), today);
+    const next = nextOccurrence(p.birthday, true, today);
+    const days = daysUntil(next, today);
     if (days >= 0 && days <= 30) {
       items.push({
+        event_date: next.toISOString().slice(0, 10),
+        event_title: `${p.name}'s birthday`,
         icon: "🎂",
         text:
           days === 0
@@ -224,10 +240,13 @@ export function buildBrief(
 
   // Tracked dates (anniversary, holidays, custom)
   for (const d of dates) {
-    const days = daysUntil(nextOccurrence(d.date_value, d.recurs_yearly, today), today);
+    const nextDate = nextOccurrence(d.date_value, d.recurs_yearly, today);
+    const days = daysUntil(nextDate, today);
     if (days >= 0 && days <= d.lead_time_days) {
       const who = d.person_id ? byId.get(d.person_id) : null;
       items.push({
+        event_date: nextDate.toISOString().slice(0, 10),
+        event_title: d.label,
         icon: d.label.toLowerCase().includes("anniversary") ? "💍" : "📅",
         text:
           days === 0
