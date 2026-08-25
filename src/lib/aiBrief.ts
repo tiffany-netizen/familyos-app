@@ -43,9 +43,9 @@ Write today's brief. Rules:
 - CALENDAR: when calendar_connected, calendar_events holds the real Google Calendar for the next 7 days. Events naming someone from people ("Kelly book club") are family logistics and take priority; generic work meetings and syncs stay OUT of the brief unless they collide with a family commitment. Fold today's and tomorrow's events into the brief with prep questions like any other event, key "cal:<summary-hyphenated>", until one hour after start for today's timed events. Never duplicate an event that also exists in sports_events. When suggesting date night or errands, prefer evenings with no calendar events.
 - Work trips: one concrete way to ease the load on the family while away. Family trips: one concrete prep step.
 - Weave remembered details in when they change a decision ("she wanted trail shoes, that covers the gift"), not as decoration.
-- Do NOT include open to-dos (shown separately). Do not invent people, dates, or facts not in the snapshot.
+- TO-DOS: todos_due lists open to-dos that are overdue or due today or tomorrow (today is the "today" date given; compare due_date strings, no date math). When any exist, write ONE combined item with key "todos" naming up to three of them ("Two to-dos are due today: call the dentist, RSVP to the party"). Undated and later to-dos stay OUT of the brief; the list shows them itself. Do not invent people, dates, or facts not in the snapshot.
 
-KEYS AND SUPPRESSION: every item gets a stable "key" slug so the user can snooze it: "call:<person id>", "date:<label-lowercase-hyphenated>", "birthday:<person id>", "dinner", "dinner-plan", "school-run", "activity:<label-hyphenated>", "sport:<YYYY-MM-DD>", "home:<task-hyphenated>", "trip:<destination-hyphenated>", "sweet-text", "school-run-plan". NEVER include an item whose key is in suppressed_keys.
+KEYS AND SUPPRESSION: every item gets a stable "key" slug so the user can snooze it: "call:<person id>", "date:<label-lowercase-hyphenated>", "birthday:<person id>", "dinner", "dinner-plan", "school-run", "activity:<label-hyphenated>", "sport:<YYYY-MM-DD>", "home:<task-hyphenated>", "trip:<destination-hyphenated>", "sweet-text", "school-run-plan", "todos". NEVER include an item whose key is in suppressed_keys.
 
 Return ONLY JSON, no prose around it:
 {

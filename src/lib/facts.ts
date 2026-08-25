@@ -27,6 +27,7 @@ export type Facts = {
   trips: Record<string, unknown>[];
   sports_events: Record<string, unknown>[];
   open_todo_count: number;
+  todos_due: Record<string, unknown>[];
   recent_memories: Record<string, unknown>[];
   gift_ideas: Record<string, unknown>[];
   answered_followups: Record<string, unknown>[];
@@ -97,7 +98,11 @@ export async function gatherFacts(
       .gte("event_date", now.toISOString())
       .order("event_date")
       .limit(10),
-    supabase.from("todos").select("id").eq("owner_id", userId).eq("done", false),
+    supabase
+      .from("todos")
+      .select("id,title,due_date,category")
+      .eq("owner_id", userId)
+      .eq("done", false),
     supabase
       .from("memories")
       .select("body,category,created_at,person_id")
@@ -263,6 +268,13 @@ export async function gatherFacts(
     trips: trips ?? [],
     sports_events: events ?? [],
     open_todo_count: (todos ?? []).length,
+    todos_due: (todos ?? []).filter((t) => {
+      const due = t.due_date as string | null;
+      if (!due) return false;
+      const tomorrow = new Date(midnight.getTime() + DAY);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      return due <= tomorrowStr;
+    }),
     recent_memories: memories ?? [],
     gift_ideas: gifts ?? [],
     answered_followups: followups ?? [],
