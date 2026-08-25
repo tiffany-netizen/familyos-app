@@ -15,18 +15,26 @@ type PhotonFeature = {
     town?: string;
     village?: string;
     state?: string;
+    postcode?: string;
     country?: string;
   };
 };
 
-function format(f: PhotonFeature): string | null {
+// typedNumber: the house number the user typed. The geocoder often returns
+// street-level results without one; picking a suggestion must never eat
+// the user's house number.
+function format(f: PhotonFeature, typedNumber: string | null): string | null {
   const p = f.properties ?? {};
-  const street = [p.housenumber, p.street].filter(Boolean).join(" ");
+  const num = p.housenumber || typedNumber || "";
+  const street = [num, p.street].filter(Boolean).join(" ");
   const line1 = street || p.name || "";
   const city = p.city || p.town || p.village || "";
   const state = p.state || "";
+  const zip = p.postcode || "";
   if (!line1 && !city) return null;
-  return [line1, city, state].filter(Boolean).join(", ");
+  return [line1, city, [state, zip].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ");
 }
 
 export default function AddressField({
@@ -64,9 +72,13 @@ export default function AddressField({
           `https://photon.komoot.io/api/?limit=5&lang=en&q=${encodeURIComponent(value.trim())}`
         );
         const data = (await r.json()) as { features?: PhotonFeature[] };
+        // "2808 Northwest Shields Dr..." -> remember "2808" so suggestions
+        // that come back street-level keep it.
+        const typedNumber =
+          value.trim().match(/^(\d+[a-zA-Z]?)\s+\S/)?.[1] ?? null;
         const opts: string[] = [];
         for (const f of data.features ?? []) {
-          const s = format(f);
+          const s = format(f, typedNumber);
           if (s && !opts.includes(s)) opts.push(s);
         }
         setSugs(opts);
@@ -112,6 +124,16 @@ export default function AddressField({
               {s}
             </button>
           ))}
+          <button
+            type="button"
+            onMouseDown={() => {
+              chosen.current = true;
+              setOpen(false);
+            }}
+            className="block w-full border-t border-line px-4 py-2.5 text-left text-[13px] font-semibold text-sub hover:bg-blue-soft"
+          >
+            Keep exactly what I typed
+          </button>
         </div>
       )}
       {hint && <p className="mt-1.5 text-[13px] text-sub">{hint}</p>}
