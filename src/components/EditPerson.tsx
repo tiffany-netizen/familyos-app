@@ -13,6 +13,7 @@ type Person = {
   grade: string | null;
   school: string | null;
   school_address: string | null;
+  phone: string | null;
   teacher_name: string | null;
   best_friend: string | null;
   clothing_size: string | null;
@@ -31,6 +32,7 @@ type Person = {
 const COMMON: [keyof Person, string, string][] = [
   ["name", "Name", "text"],
   ["birthday", "Birthday", "date"],
+  ["phone", "Phone", "tel"],
   ["interests", "Interests", "text"],
   ["allergies", "Allergies", "text"],
 ];

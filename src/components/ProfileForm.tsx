@@ -12,6 +12,7 @@ type Profile = {
   full_name: string | null;
   birthday: string | null;
   home_address: string | null;
+  phone: string | null;
   date_night_frequency_days: number | null;
   sweet_text_optin: boolean | null;
   brief_email: boolean | null;
@@ -50,6 +51,7 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
   const [name, setName] = useState(initial.full_name ?? "");
   const [birthday, setBirthday] = useState(initial.birthday ?? "");
   const [address, setAddress] = useState(initial.home_address ?? "");
+  const [phone, setPhone] = useState(initial.phone ?? "");
   const [dateNight, setDateNight] = useState(
     initial.date_night_frequency_days ?? 14
   );
@@ -83,6 +85,7 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         full_name: name.trim() || null,
         birthday: birthday || null,
         home_address: address.trim() || null,
+        phone: phone.trim() || null,
         date_night_frequency_days: dateNight,
         sweet_text_optin: sweetText,
         brief_email: briefEmail,
@@ -143,6 +146,22 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         placeholder="Start typing your address..."
         hint="Pick from the suggestions. Used for restaurants, sitters, and plans near you. Never shared."
       />
+
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Your phone
+        </span>
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="(555) 555-1234"
+          className="w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
+        />
+        <span className="mt-1 block text-xs text-sub">
+          Goes on the sitter brief so the babysitter can reach you.
+        </span>
+      </label>
 
       <div>
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">

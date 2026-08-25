@@ -52,12 +52,18 @@ export default function SitterBrief({
   kids,
   sitter,
   parentName,
+  parentPhone = "",
+  spouseName = "",
+  spousePhone = "",
   address,
   mealNotes,
 }: {
   kids: Kid[];
   sitter: Sitter;
   parentName: string;
+  parentPhone?: string;
+  spouseName?: string;
+  spousePhone?: string;
   address: string;
   mealNotes: string;
 }) {
@@ -134,9 +140,18 @@ export default function SitterBrief({
     for (const e of emergency ?? []) {
       lines.push(`${e.kind}: ${e.name} (${e.dist})`);
     }
-    lines.push("Our numbers: [add yours]");
+    const numbers: string[] = [];
+    if (parentPhone.trim())
+      numbers.push(`${parentName || "Parent"}: ${parentPhone.trim()}`);
+    if (spousePhone.trim())
+      numbers.push(`${spouseName || "Partner"}: ${spousePhone.trim()}`);
+    lines.push(
+      numbers.length
+        ? `Our numbers: ${numbers.join(" / ")}`
+        : "Our numbers: [add yours in your profile and the partner's page]"
+    );
     setText(lines.join("\n"));
-  }, [emergencyState, emergency, kids, parentName, address, mealNotes]);
+  }, [emergencyState, emergency, kids, parentName, parentPhone, spouseName, spousePhone, address, mealNotes]);
 
   async function copy() {
     await navigator.clipboard.writeText(text);
