@@ -245,7 +245,7 @@ export async function POST(request: Request) {
           supabase.from("profiles").select("full_name,home_address").eq("id", user.id).single(),
         ]);
         const system =
-          fu.kind === "todo"
+          fu.kind === "todo" || fu.kind === "contact"
             ? COACH_SYSTEM +
               `\n\nThis follow-up came from a to-do. If the answer names a NEW person or service provider (a babysitter, cleaner, coach, doctor, friend), also return "service_provider": {"name": "...", "kind": "babysitter|cleaner|gardener|mechanic|other"} or "person": {"name": "...", "relationship": "friend|parent|sibling|other"}; otherwise null for both. They get filed into the database automatically.`
             : COACH_SYSTEM;
@@ -276,7 +276,7 @@ export async function POST(request: Request) {
               source: "weekly_checkin",
             });
           }
-          if (fu.kind === "todo" && out.service_provider?.name) {
+          if ((fu.kind === "todo" || fu.kind === "contact") && out.service_provider?.name) {
             await supabase.from("service_providers").insert({
               owner_id: user.id,
               name: out.service_provider.name.slice(0, 80),
@@ -287,7 +287,7 @@ export async function POST(request: Request) {
                 : "other",
             });
           }
-          if (fu.kind === "todo" && out.person?.name) {
+          if ((fu.kind === "todo" || fu.kind === "contact") && out.person?.name) {
             await supabase.from("people").insert({
               owner_id: user.id,
               name: out.person.name.slice(0, 80),
