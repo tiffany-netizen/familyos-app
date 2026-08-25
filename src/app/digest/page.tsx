@@ -43,6 +43,17 @@ export default async function DigestPage() {
   // tap-to-expand count per day.
   const FAMILY_RE =
     /doctor|dr\.|dentist|ortho|pediatr|school|practice|game|recital|lesson|tournament|birthday|party|\bvet\b|camp|appt|appointment|sitter|babysit|church|family|\bkids?\b|anniversary|date night|dinner res|flight/i;
+  // Events naming YOUR people always count as family: "Kelly book club",
+  // "James dentist", "trip with Jason". Names come from PeopleOS.
+  const familyNames = (people ?? [])
+    .map((p) => String(p.name ?? "").split(" ")[0])
+    .filter((n) => n.length > 2)
+    .map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const NAME_RE = familyNames.length
+    ? new RegExp(`\\b(${familyNames.join("|")})\\b`, "i")
+    : null;
+  const isFamilyEvent = (summary: string) =>
+    FAMILY_RE.test(summary) || (NAME_RE ? NAME_RE.test(summary) : false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -78,7 +89,7 @@ export default async function DigestPage() {
           ? "all day"
           : start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12 });
         const line = `${e.summary} · ${time}`;
-        if (FAMILY_RE.test(e.summary)) items.push(`${line} · calendar`);
+        if (isFamilyEvent(e.summary)) items.push(`${line} · calendar`);
         else other.push(line);
       }
     });
