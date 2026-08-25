@@ -7,7 +7,8 @@ import FollowupCard from "@/components/FollowupCard";
 import MemoryCapture from "@/components/MemoryCapture";
 import SignOutButton from "@/components/SignOutButton";
 import BottomNav from "@/components/BottomNav";
-import BriefCard from "@/components/BriefCard";
+import BriefFeed from "@/components/BriefFeed";
+import Icon from "@/components/Icon";
 import Link from "next/link";
 import {
   DateNightCard,
@@ -103,9 +104,10 @@ export default async function TodayPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/profile"
+            aria-label="Your profile"
             className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
           >
-            👤
+            <Icon name="users" size={14} className="inline" />
           </Link>
           <Link
             href="/digest"
@@ -129,15 +131,13 @@ export default async function TodayPage() {
 
       {brief.length === 0 && (
         <div className="rounded-2xl border border-line p-5 text-center text-sm text-sub shadow-sm">
-          🟢 Nothing urgent today. As you add people, dates, and notes, your
+          Nothing urgent today. As you add people, dates, and notes, your
           brief fills in here every morning.
         </div>
       )}
 
       <div className="space-y-3">
-        {sortedBrief.map((b, i) => (
-          <BriefCard key={i} item={b} />
-        ))}
+        <BriefFeed items={sortedBrief} />
         <FollowupCard />
         {(() => {
           const spouse = (people ?? []).find((p) => p.relationship === "spouse");
@@ -154,7 +154,7 @@ export default async function TodayPage() {
             className="flex items-center justify-between rounded-2xl border border-line bg-white p-4 shadow-sm"
           >
             <span className="text-[15px]">
-              ✅ <b>{todoCount} thing{todoCount === 1 ? "" : "s"}</b> on your
+              <b>{todoCount} thing{todoCount === 1 ? "" : "s"}</b> on your
               to-do list
             </span>
             <span className="text-sm font-semibold text-blue-ink">View ›</span>
@@ -192,12 +192,7 @@ export default async function TodayPage() {
       <div className="space-y-3">
         <HealthCard />
         <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
-          🍳 <b>Recipe box + shopping list.</b> Save favorite recipes, tap
-          ingredients onto a shopping list, and get dinner ideas that skip what
-          the kids won&apos;t eat.
-        </div>
-        <div className="rounded-2xl border border-line bg-white p-4 text-[15px] shadow-sm">
-          🔌 <b>Connect your AI.</b> Link the assistant you already use
+          <b>Connect your AI.</b> Link the assistant you already use
           (ChatGPT, Claude) so FamilyOS can plan with the context it has about
           your life, and vice versa.
         </div>
