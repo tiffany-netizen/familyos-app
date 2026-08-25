@@ -4,6 +4,7 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import CallCard from "@/components/CallCard";
 import EditPerson from "@/components/EditPerson";
+import AddGift from "@/components/AddGift";
 import { avatarColor, relationshipLabel } from "@/lib/peopleUi";
 
 export default async function PersonPage({
@@ -140,6 +141,7 @@ export default async function PersonPage({
           ))
         )}
       </div>
+      <AddGift people={[{ id: p.id, name: p.name }]} />
       <BottomNav />
     </main>
   );
