@@ -167,7 +167,7 @@ export default function BriefCard({ item }: { item: BriefItem }) {
   }
 
   return (
-    <div className="flex gap-3 bg-white p-4">
+    <div className="flex gap-3 border-l-[3px] border-l-brand bg-white p-4">
       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
         <Icon name={briefIcon(item.key, item.role)} />
       </div>
