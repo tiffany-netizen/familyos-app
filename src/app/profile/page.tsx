@@ -4,6 +4,7 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import ProfileForm from "@/components/ProfileForm";
 import CalendarConnect from "@/components/CalendarConnect";
+import ConnectAi from "@/components/ConnectAi";
 import { googleEnabled } from "@/lib/google";
 
 export default async function ProfilePage({
@@ -54,6 +55,9 @@ export default async function ProfilePage({
           available={googleEnabled()}
           status={calendar}
         />
+      </div>
+      <div className="mb-6">
+        <ConnectAi />
       </div>
       <ProfileForm
         initial={
