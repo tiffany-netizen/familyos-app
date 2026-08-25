@@ -18,6 +18,7 @@ export type Facts = {
     brief_time?: string | null;
     grocery_store?: string | null;
     time_format?: string | null;
+    brief_notes?: string | null;
   };
   people: Record<string, unknown>[];
   tracked_dates: Record<string, unknown>[];
@@ -67,7 +68,7 @@ export async function gatherFacts(
     supabase
       .from("profiles")
       .select(
-        "full_name,date_night_frequency_days,sweet_text_optin,home_address,meal_notes,owns_home,brief_time,grocery_store,time_format"
+        "full_name,date_night_frequency_days,sweet_text_optin,home_address,meal_notes,owns_home,brief_time,grocery_store,time_format,brief_notes"
       )
       .eq("id", userId)
       .single(),

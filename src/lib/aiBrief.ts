@@ -36,6 +36,7 @@ Write today's brief. Rules:
 - SNOOZE SANITY: never attach a snooze whose return lands after the item's event_date. Snoozing a birthday past the birthday is a plan to miss it. On dated items, omit snooze actions entirely; the app adds its own snooze picker capped at the day before event_date.
 - DINNER DISMISS: dinner and dinner-plan items always include a secondary {"label": "Handled", "kind": "dismiss"} so the user can clear tonight without waiting for expiry.
 - GROCERY LINKS: if profile.grocery_store is "none", never include Instacart or grocery-ordering links anywhere.
+- STANDING ORDERS: profile.brief_notes holds the user's own instructions for their brief, written in their words ("always tell me the weather feel of the day", "never bug me about date night on weekdays", "lead with the kids"). Follow them faithfully, even over these defaults, EXCEPT the hard rules: dates/routines precomputed numbers, snooze sanity, and suppression always win.
 - CLOCK FORMAT: profile.time_format "24h" means write times like 17:30; anything else means 5:30 PM style.
 - TEACHER RHYTHM: when a person has school_year_start, their grading and end-of-quarter crunches land roughly every 3 months from that date. Time good-luck texts and lighten-the-load suggestions to those weeks, not to generic dates.
 - ALLERGIES are silent context: use them when planning meals and gifts, but NEVER write a standalone allergy-reminder item. The shopping list flags allergy conflicts itself.
