@@ -11,7 +11,7 @@ export default async function SitterPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: kids }, { data: sitters }, { data: profile }] =
+  const [{ data: kids }, { data: sitters }, { data: profile }, { data: spouse }] =
     await Promise.all([
       supabase
         .from("people")
@@ -26,9 +26,15 @@ export default async function SitterPage() {
         .eq("kind", "babysitter"),
       supabase
         .from("profiles")
-        .select("full_name,home_address,meal_notes")
+        .select("full_name,home_address,meal_notes,phone")
         .eq("id", user.id)
         .single(),
+      supabase
+        .from("people")
+        .select("name,phone")
+        .eq("owner_id", user.id)
+        .eq("relationship", "spouse")
+        .maybeSingle(),
     ]);
 
   return (
@@ -45,6 +51,9 @@ export default async function SitterPage() {
         kids={(kids ?? []) as never}
         sitter={(sitters ?? [])[0] ?? null}
         parentName={(profile?.full_name ?? "").split(" ")[0]}
+        parentPhone={profile?.phone ?? ""}
+        spouseName={(spouse?.name ?? "").split(" ")[0]}
+        spousePhone={spouse?.phone ?? ""}
         address={profile?.home_address ?? ""}
         mealNotes={profile?.meal_notes ?? ""}
       />
