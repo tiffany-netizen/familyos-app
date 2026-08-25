@@ -1,26 +1,112 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
+
+/* Design language: a printed field manual, not a lifestyle app.
+   Paper background, hairline rules, near-square corners, deep green ink,
+   mono labels on anything that reads like an instrument. The overrides at
+   the bottom flatten the old soft look app-wide without touching every file. */
 
 :root {
-  --background: #ffffff;
-  --foreground: #1e293b;
+  --background: #f4f2ec;
+  --foreground: #131a15;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-brand: #26584a;
-  --color-brand-soft: #e4eeeb;
-  --color-blue: #61b2d6;
-  --color-blue-soft: #eaf4fa;
-  --color-blue-ink: #2e7396;
-  --color-ink: #1e293b;
-  --color-sub: #64748b;
-  --color-line: #e2e8f0;
+  --color-brand: #1d4a3c;
+  --color-brand-soft: #e0e7e1;
+  --color-blue: #44617b;
+  --color-blue-soft: #e5eaee;
+  --color-blue-ink: #35516b;
+  --color-ink: #131a15;
+  --color-sub: #59615a;
+  --color-line: #cfcdc0;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  font-feature-settings: "tnum";
+  overflow-x: hidden;
+}
+
+/* Phone manners: no double-tap zoom delay, no gray tap flash, and inputs
+   at 16px on small screens so iOS Safari stops zooming in on focus. */
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* Uppercase kicker labels across the app read in mono, like an instrument panel. */
+.tracking-widest,
+.tracking-wider,
+.tracking-wide {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+}
+
+/* Primary CTAs read like stamped controls: mono, uppercase, square. */
+button.bg-brand,
+a.bg-brand {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12px;
+}
+
+/* Flatten the surface language everywhere without touching every file. */
+@layer utilities {
+  .rounded-3xl {
+    border-radius: 6px;
+  }
+  .rounded-t-3xl {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+  }
+  .rounded-2xl {
+    border-radius: 3px;
+  }
+  .rounded-xl {
+    border-radius: 2px;
+  }
+  .rounded-lg,
+  .rounded-md {
+    border-radius: 2px;
+  }
+  .rounded-full {
+    border-radius: 9999px;
+  }
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none;
+  }
+  .border-line {
+    border-color: var(--color-line);
+  }
 }
