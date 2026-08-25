@@ -18,6 +18,7 @@ export type Facts = {
     brief_time?: string | null;
     grocery_store?: string | null;
     time_format?: string | null;
+    brief_notes?: string | null;
   };
   people: Record<string, unknown>[];
   tracked_dates: Record<string, unknown>[];
@@ -26,6 +27,7 @@ export type Facts = {
   trips: Record<string, unknown>[];
   sports_events: Record<string, unknown>[];
   open_todo_count: number;
+  todos_due: Record<string, unknown>[];
   recent_memories: Record<string, unknown>[];
   gift_ideas: Record<string, unknown>[];
   answered_followups: Record<string, unknown>[];
@@ -39,7 +41,7 @@ export type Facts = {
 };
 
 const PERSON_COLS =
-  "id,name,nickname,relationship,birthday,grade,school,school_address,teacher_name,dismissal_time,best_friend,clothing_size,interests,allergies,pediatrician,favorite_wine,favorite_flowers,works,job,stress_note,school_year_start,last_contact,breed";
+  "id,name,nickname,relationship,birthday,phone,grade,school,school_address,teacher_name,dismissal_time,best_friend,clothing_size,interests,allergies,pediatrician,favorite_wine,favorite_flowers,works,job,stress_note,school_year_start,last_contact,breed";
 
 export async function gatherFacts(
   supabase: SupabaseClient,
@@ -67,7 +69,7 @@ export async function gatherFacts(
     supabase
       .from("profiles")
       .select(
-        "full_name,date_night_frequency_days,sweet_text_optin,home_address,meal_notes,owns_home,brief_time,grocery_store,time_format"
+        "full_name,date_night_frequency_days,sweet_text_optin,home_address,meal_notes,owns_home,brief_time,grocery_store,time_format,brief_notes"
       )
       .eq("id", userId)
       .single(),
@@ -96,7 +98,11 @@ export async function gatherFacts(
       .gte("event_date", now.toISOString())
       .order("event_date")
       .limit(10),
-    supabase.from("todos").select("id").eq("owner_id", userId).eq("done", false),
+    supabase
+      .from("todos")
+      .select("id,title,due_date,category")
+      .eq("owner_id", userId)
+      .eq("done", false),
     supabase
       .from("memories")
       .select("body,category,created_at,person_id")
@@ -262,6 +268,13 @@ export async function gatherFacts(
     trips: trips ?? [],
     sports_events: events ?? [],
     open_todo_count: (todos ?? []).length,
+    todos_due: (todos ?? []).filter((t) => {
+      const due = t.due_date as string | null;
+      if (!due) return false;
+      const tomorrow = new Date(midnight.getTime() + DAY);
+      const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      return due <= tomorrowStr;
+    }),
     recent_memories: memories ?? [],
     gift_ideas: gifts ?? [],
     answered_followups: followups ?? [],

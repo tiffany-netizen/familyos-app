@@ -58,6 +58,9 @@ export async function sendEmail(to: string, subject: string, html: string) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("RESEND_API_KEY is not set");
   const from = process.env.EMAIL_FROM || "FamilyOS <onboarding@resend.dev>";
+  // When inbound email is configured, replies to the brief flow back into
+  // the app through /api/inbound.
+  const replyTo = process.env.EMAIL_REPLY_TO;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -65,7 +68,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
       "content-type": "application/json",
       authorization: `Bearer ${key}`,
     },
-    body: JSON.stringify({ from, to, subject, html }),
+    body: JSON.stringify({ from, to, subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
   });
   if (!res.ok) {
     const body = await res.text();

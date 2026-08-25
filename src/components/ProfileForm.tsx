@@ -12,6 +12,8 @@ type Profile = {
   full_name: string | null;
   birthday: string | null;
   home_address: string | null;
+  phone: string | null;
+  brief_notes: string | null;
   date_night_frequency_days: number | null;
   sweet_text_optin: boolean | null;
   brief_email: boolean | null;
@@ -50,6 +52,9 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
   const [name, setName] = useState(initial.full_name ?? "");
   const [birthday, setBirthday] = useState(initial.birthday ?? "");
   const [address, setAddress] = useState(initial.home_address ?? "");
+  const [phone, setPhone] = useState(initial.phone ?? "");
+  const [briefNotes, setBriefNotes] = useState(initial.brief_notes ?? "");
+  const [listening, setListening] = useState(false);
   const [dateNight, setDateNight] = useState(
     initial.date_night_frequency_days ?? 14
   );
@@ -64,6 +69,24 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function toggleMic() {
+    type SR = { new (): { lang: string; interimResults: boolean; onresult: (e: { results: { [i: number]: { [j: number]: { transcript: string } } }; resultIndex: number }) => void; onend: () => void; start: () => void } };
+    const w = window as unknown as { SpeechRecognition?: SR; webkitSpeechRecognition?: SR };
+    const S = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!S || listening) return;
+    const rec = new S();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.onresult = (e) => {
+      const t = e.results[e.resultIndex]?.[0]?.transcript ?? "";
+      setBriefNotes((prev) => (prev ? prev + " " : "") + t);
+    };
+    rec.onend = () => setListening(false);
+    rec.start();
+    setListening(true);
+  }
+
 
   async function save() {
     setBusy(true);
@@ -83,6 +106,8 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         full_name: name.trim() || null,
         birthday: birthday || null,
         home_address: address.trim() || null,
+        phone: phone.trim() || null,
+        brief_notes: briefNotes.trim() || null,
         date_night_frequency_days: dateNight,
         sweet_text_optin: sweetText,
         brief_email: briefEmail,
@@ -143,6 +168,47 @@ export default function ProfileForm({ initial }: { initial: Profile }) {
         placeholder="Start typing your address..."
         hint="Pick from the suggestions. Used for restaurants, sitters, and plans near you. Never shared."
       />
+
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          Your phone
+        </span>
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="(555) 555-1234"
+          className="w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
+        />
+        <span className="mt-1 block text-xs text-sub">
+          Goes on the sitter brief so the babysitter can reach you.
+        </span>
+      </label>
+
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">
+          My brief, in your words
+        </span>
+        <textarea
+          value={briefNotes}
+          onChange={(e) => setBriefNotes(e.target.value)}
+          rows={3}
+          placeholder='"Always lead with the kids." "Skip date night nudges on weekdays." "Remind me about trash night Sundays."'
+          className="w-full rounded-xl border-[1.5px] border-line px-4 py-3 outline-none focus:border-brand"
+        />
+        <button
+          type="button"
+          onClick={toggleMic}
+          className={`mt-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold ${
+            listening ? "bg-red-100 text-red-600" : "bg-blue-soft text-blue-ink"
+          }`}
+        >
+          {listening ? "Listening..." : "Speak it instead"}
+        </button>
+        <span className="mt-1 block text-xs text-sub">
+          Standing orders for your daily brief. It follows these every morning.
+        </span>
+      </label>
 
       <div>
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-sub">

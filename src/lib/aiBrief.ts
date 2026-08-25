@@ -36,15 +36,16 @@ Write today's brief. Rules:
 - SNOOZE SANITY: never attach a snooze whose return lands after the item's event_date. Snoozing a birthday past the birthday is a plan to miss it. On dated items, omit snooze actions entirely; the app adds its own snooze picker capped at the day before event_date.
 - DINNER DISMISS: dinner and dinner-plan items always include a secondary {"label": "Handled", "kind": "dismiss"} so the user can clear tonight without waiting for expiry.
 - GROCERY LINKS: if profile.grocery_store is "none", never include Instacart or grocery-ordering links anywhere.
+- STANDING ORDERS: profile.brief_notes holds the user's own instructions for their brief, written in their words ("always tell me the weather feel of the day", "never bug me about date night on weekdays", "lead with the kids"). Follow them faithfully, even over these defaults, EXCEPT the hard rules: dates/routines precomputed numbers, snooze sanity, and suppression always win.
 - CLOCK FORMAT: profile.time_format "24h" means write times like 17:30; anything else means 5:30 PM style.
 - TEACHER RHYTHM: when a person has school_year_start, their grading and end-of-quarter crunches land roughly every 3 months from that date. Time good-luck texts and lighten-the-load suggestions to those weeks, not to generic dates.
 - ALLERGIES are silent context: use them when planning meals and gifts, but NEVER write a standalone allergy-reminder item. The shopping list flags allergy conflicts itself.
 - CALENDAR: when calendar_connected, calendar_events holds the real Google Calendar for the next 7 days. Events naming someone from people ("Kelly book club") are family logistics and take priority; generic work meetings and syncs stay OUT of the brief unless they collide with a family commitment. Fold today's and tomorrow's events into the brief with prep questions like any other event, key "cal:<summary-hyphenated>", until one hour after start for today's timed events. Never duplicate an event that also exists in sports_events. When suggesting date night or errands, prefer evenings with no calendar events.
 - Work trips: one concrete way to ease the load on the family while away. Family trips: one concrete prep step.
 - Weave remembered details in when they change a decision ("she wanted trail shoes, that covers the gift"), not as decoration.
-- Do NOT include open to-dos (shown separately). Do not invent people, dates, or facts not in the snapshot.
+- TO-DOS: todos_due lists open to-dos that are overdue or due today or tomorrow (today is the "today" date given; compare due_date strings, no date math). When any exist, write ONE combined item with key "todos" naming up to three of them ("Two to-dos are due today: call the dentist, RSVP to the party"). Undated and later to-dos stay OUT of the brief; the list shows them itself. Do not invent people, dates, or facts not in the snapshot.
 
-KEYS AND SUPPRESSION: every item gets a stable "key" slug so the user can snooze it: "call:<person id>", "date:<label-lowercase-hyphenated>", "birthday:<person id>", "dinner", "dinner-plan", "school-run", "activity:<label-hyphenated>", "sport:<YYYY-MM-DD>", "home:<task-hyphenated>", "trip:<destination-hyphenated>", "sweet-text", "school-run-plan". NEVER include an item whose key is in suppressed_keys.
+KEYS AND SUPPRESSION: every item gets a stable "key" slug so the user can snooze it: "call:<person id>", "date:<label-lowercase-hyphenated>", "birthday:<person id>", "dinner", "dinner-plan", "school-run", "activity:<label-hyphenated>", "sport:<YYYY-MM-DD>", "home:<task-hyphenated>", "trip:<destination-hyphenated>", "sweet-text", "school-run-plan", "todos". NEVER include an item whose key is in suppressed_keys.
 
 Return ONLY JSON, no prose around it:
 {
@@ -56,7 +57,8 @@ Return ONLY JSON, no prose around it:
       "until": "HH:MM (optional, omit if not time-bound today)",
       "event_date": "YYYY-MM-DD (REQUIRED on any item tied to a dated occasion: birthdays, tracked dates, sports events, calendar events, trip starts. Omit on undated items like call gaps.)",
       "event_title": "REQUIRED whenever event_date is present: a clean 2-4 word calendar event name like 'Anniversary' or 'Carol's birthday' or 'Emma's soccer game'. A name only. Never relative timing like 'in 31 days', never a sentence.",
-      "text": "1-2 sentences, concrete and practical",
+      "headline": "REQUIRED: 2-5 word skimmable label for the collapsed card, with a time when there is one. Examples: 'School run · 8:40 AM', 'SF trip · 7 days', 'Anniversary · 30 days', 'Dinner plan tonight'. Never a sentence.",
+      "text": "1-2 sentences of detail shown when the card is opened, concrete and practical",
       "meta": "role · context, e.g. 'dad · today's checklist'",
       "role": "dad|husband|son|home|friend|personal",
       "actions": [
@@ -118,6 +120,7 @@ function sanitize(raw: AiBrief | null): AiBrief | null {
     const until = (it as BriefItem).until;
     const eventDate = (it as BriefItem).event_date;
     const eventTitle = (it as BriefItem).event_title;
+    const headline = (it as BriefItem).headline;
     items.push({
       icon: typeof it.icon === "string" ? it.icon.slice(0, 8) : "•",
       key: slug((it as BriefItem).key),
@@ -132,6 +135,10 @@ function sanitize(raw: AiBrief | null): AiBrief | null {
       event_title:
         typeof eventTitle === "string" && eventTitle.trim()
           ? deDash(eventTitle.trim()).slice(0, 60)
+          : undefined,
+      headline:
+        typeof headline === "string" && headline.trim()
+          ? deDash(headline.trim()).slice(0, 48)
           : undefined,
       text: deDash(it.text),
       meta: deDash(typeof it.meta === "string" ? it.meta : ""),

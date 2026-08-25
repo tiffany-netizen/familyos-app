@@ -181,6 +181,30 @@ export default function MealsClient({
         {importError && (
           <p className="mt-2 text-[13px] font-medium text-red-600">{importError}</p>
         )}
+        <p className="mt-3 text-xs text-sub">
+          Sites that import cleanly: browse one, copy any recipe&apos;s link,
+          paste it above.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[
+            ["Budget Bytes", "https://www.budgetbytes.com"],
+            ["RecipeTin Eats", "https://www.recipetineats.com"],
+            ["Skinnytaste", "https://www.skinnytaste.com"],
+            ["Pinch of Yum", "https://pinchofyum.com"],
+            ["Cookie and Kate", "https://cookieandkate.com"],
+            ["Gimme Some Oven", "https://www.gimmesomeoven.com"],
+          ].map(([name, href]) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border-[1.5px] border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
+            >
+              {name}
+            </a>
+          ))}
+        </div>
       </div>
 
       {/* Shopping list */}

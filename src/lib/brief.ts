@@ -52,6 +52,7 @@ export type BriefItem = {
   until?: string; // "HH:MM" local; the feed hides the card after this time
   event_date?: string; // "YYYY-MM-DD"; snoozes never reach past this date
   event_title?: string; // clean calendar-event name ("Anniversary"), no relative timing
+  headline?: string; // 2-5 word skimmable label shown on the collapsed card
   actions?: BriefAction[];
 };
 

@@ -1,27 +1,31 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 
-/* Design language: a printed field manual, not a lifestyle app.
-   Paper background, hairline rules, near-square corners, deep green ink,
-   mono labels on anything that reads like an instrument. The overrides at
-   the bottom flatten the old soft look app-wide without touching every file. */
+/* Design language: THE FIELD KIT, sentence case.
+   Bone paper ground, near-black ink, hard black left rules on agenda rows,
+   condensed headlines in sentence case, blocky square controls, amber and
+   rust accents. No all-caps anywhere. */
 
 :root {
-  --background: #f4f2ec;
-  --foreground: #131a15;
+  --background: #edeae2; /* bone paper */
+  --foreground: #26251f; /* body ink */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-brand: #1d4a3c;
-  --color-brand-soft: #e0e7e1;
-  --color-blue: #44617b;
-  --color-blue-soft: #e5eaee;
-  --color-blue-ink: #35516b;
-  --color-ink: #131a15;
-  --color-sub: #59615a;
-  --color-line: #cfcdc0;
+  /* Panels: bg-white across the codebase becomes the raised paper panel.
+     text-white rides along, which makes solid-ink buttons read bone. */
+  --color-white: #f7f4ed;
+  --color-brand: #171713; /* ink: primary actions, rules, icons */
+  --color-brand-soft: #e2ddcc; /* warm wash for selected chips */
+  --color-blue: #8a5a1c;
+  --color-blue-soft: #e7e2d3; /* secondary action surface */
+  --color-blue-ink: #8a5a1c; /* links + secondary text: dark amber */
+  --color-ink: #171713;
+  --color-sub: #6b675a; /* warm gray */
+  --color-line: #cbc6b5; /* hairlines */
+  --color-amber: #d8b04a;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -32,10 +36,28 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif;
+  font-family: Archivo, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
   font-feature-settings: "tnum";
   overflow-x: hidden;
+}
+
+/* Condensed headlines, sentence case. */
+h1,
+h2,
+h3 {
+  font-family: "Archivo Narrow", "Archivo", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.05;
+  color: var(--color-ink);
+}
+
+.brief-h {
+  font-family: "Archivo Narrow", "Archivo", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  color: var(--color-ink);
 }
 
 /* Phone manners: no double-tap zoom delay, no gray tap flash, and inputs
@@ -57,31 +79,41 @@ textarea {
   }
 }
 
-h1,
-h2,
-h3 {
-  letter-spacing: -0.02em;
+::placeholder {
+  color: #a19c8a;
 }
 
-/* Uppercase kicker labels across the app read in mono, like an instrument panel. */
+/* Kicker labels: quiet mono tags, never shouting. */
 .tracking-widest,
 .tracking-wider,
 .tracking-wide {
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
 }
 
-/* Primary CTAs read like stamped controls: mono, uppercase, square. */
+/* Controls: blocky stamped gear in sentence case. */
 button.bg-brand,
 a.bg-brand {
-  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 12px;
+  font-family: "Archivo Narrow", "Archivo", sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+}
+button.bg-blue-soft,
+a.bg-blue-soft {
+  font-family: "Archivo Narrow", "Archivo", sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 700;
+  border: 2px solid #171713;
+  color: #171713;
+  background: transparent;
 }
 
 /* Flatten the surface language everywhere without touching every file. */
 @layer utilities {
+  /* Sentence case everywhere: markup-level all-caps is retired. */
+  .uppercase {
+    text-transform: none;
+  }
   .rounded-3xl {
     border-radius: 6px;
   }
@@ -106,7 +138,18 @@ a.bg-brand {
   .shadow-lg {
     box-shadow: none;
   }
-  .border-line {
-    border-color: var(--color-line);
+  /* Reds become the kit's rust. */
+  .text-red-500,
+  .text-red-600 {
+    color: #b3502e;
+  }
+  .bg-red-600 {
+    background: #b3502e;
+  }
+  .bg-red-50 {
+    background: #ecdcd2;
+  }
+  .bg-red-100 {
+    background: #e8d3c4;
   }
 }

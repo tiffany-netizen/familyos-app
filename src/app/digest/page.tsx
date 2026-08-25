@@ -4,6 +4,7 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import UploadSchedule from "@/components/UploadSchedule";
 import { getAccessToken, listUpcomingEvents, type CalendarEvent } from "@/lib/google";
+import { holidayFor } from "@/lib/holidays";
 
 const DAY = 86400000;
 
@@ -55,6 +56,8 @@ export default async function DigestPage() {
   const isFamilyEvent = (summary: string) =>
     FAMILY_RE.test(summary) || (NAME_RE ? NAME_RE.test(summary) : false);
 
+  const hasKids = (people ?? []).some((p) => p.relationship === "child");
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const week: { day: string; items: string[]; other: string[] }[] = [];
@@ -64,6 +67,22 @@ export default async function DigestPage() {
     const items: string[] = [];
     const other: string[] = [];
     const mmdd = d.toISOString().slice(5, 10);
+
+    // Major holidays, with a heads-up when school is likely out. Weekend
+    // holidays skip the school note; it means nothing on a Saturday.
+    const hol = holidayFor(d);
+    if (hol) {
+      const isWeekday = d.getDay() >= 1 && d.getDay() <= 5;
+      const schoolNote =
+        hasKids && isWeekday
+          ? hol.school === "no"
+            ? " · no school"
+            : hol.school === "maybe"
+              ? " · possible no-school day, check the district"
+              : ""
+          : "";
+      items.push(`${hol.name}${schoolNote}`);
+    }
 
     (people ?? []).forEach((p) => {
       if (p.birthday?.slice(5) === mmdd) items.push(`${p.name}'s birthday`);
