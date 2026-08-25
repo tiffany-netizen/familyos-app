@@ -30,14 +30,28 @@ export default async function DigestPage() {
     const token = await getAccessToken(supabase, user.id);
     if (token) calEvents = await listUpcomingEvents(token, 7);
   } catch {}
+  // Duplicate invites (same title, same start) collapse to one line.
+  const seenCal = new Set<string>();
+  calEvents = calEvents.filter((e) => {
+    const k = `${e.summary}|${e.start}`;
+    if (seenCal.has(k)) return false;
+    seenCal.add(k);
+    return true;
+  });
+  // The digest is family logistics. Work meetings drown it, so only
+  // family-relevant calendar events show as lines; the rest fold into a
+  // tap-to-expand count per day.
+  const FAMILY_RE =
+    /doctor|dr\.|dentist|ortho|pediatr|school|practice|game|recital|lesson|tournament|birthday|party|\bvet\b|camp|appt|appointment|sitter|babysit|church|family|\bkids?\b|anniversary|date night|dinner res|flight/i;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const week: { day: string; items: string[] }[] = [];
+  const week: { day: string; items: string[]; other: string[] }[] = [];
 
   for (let i = 0; i < 7; i++) {
     const d = new Date(today.getTime() + i * DAY);
     const items: string[] = [];
+    const other: string[] = [];
     const mmdd = d.toISOString().slice(5, 10);
 
     (people ?? []).forEach((p) => {
@@ -63,7 +77,9 @@ export default async function DigestPage() {
         const time = e.all_day
           ? "all day"
           : start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12 });
-        items.push(`${e.summary} · ${time} · calendar`);
+        const line = `${e.summary} · ${time}`;
+        if (FAMILY_RE.test(e.summary)) items.push(`${line} · calendar`);
+        else other.push(line);
       }
     });
     (events ?? []).forEach((e) => {
@@ -86,6 +102,7 @@ export default async function DigestPage() {
             ? "Tomorrow"
             : d.toLocaleDateString("en-US", { weekday: "long" }),
       items,
+      other,
     });
   }
 
@@ -115,7 +132,7 @@ export default async function DigestPage() {
             <p className="text-xs font-bold uppercase tracking-wider text-blue-ink">
               {w.day}
             </p>
-            {w.items.length === 0 ? (
+            {w.items.length === 0 && w.other.length === 0 ? (
               <p className="mt-1 text-[13px] text-sub">Nothing scheduled.</p>
             ) : (
               w.items.map((it) => (
@@ -123,6 +140,19 @@ export default async function DigestPage() {
                   {it}
                 </p>
               ))
+            )}
+            {w.other.length > 0 && (
+              <details className="mt-1">
+                <summary className="cursor-pointer list-none text-[13px] font-semibold text-sub">
+                  + {w.other.length} work / other calendar event
+                  {w.other.length === 1 ? "" : "s"} ›
+                </summary>
+                {w.other.map((it) => (
+                  <p key={it} className="mt-1 text-[13px] text-sub">
+                    {it}
+                  </p>
+                ))}
+              </details>
             )}
           </div>
         ))}
