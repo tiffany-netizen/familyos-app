@@ -18,7 +18,8 @@ export default async function SitterPage() {
         .select("id,name,birthday,allergies,pediatrician,interests,school,dismissal_time")
         .eq("owner_id", user.id)
         .eq("relationship", "child")
-        .order("created_at"),
+        // Youngest first: the sitter's attention goes to the baby.
+        .order("birthday", { ascending: false, nullsFirst: false }),
       supabase
         .from("service_providers")
         .select("name,contact_info,schedule_note")

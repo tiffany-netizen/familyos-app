@@ -12,10 +12,12 @@ export default async function PeoplePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: people } = await supabase
-    .from("people")
-    .select("*")
-    .order("created_at");
+  const [{ data: people }, { data: profile }] = await Promise.all([
+    supabase.from("people").select("*").order("created_at"),
+    supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+  ]);
+  const firstName =
+    (profile?.full_name ?? "").trim().split(" ")[0] || "You";
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
@@ -29,14 +31,19 @@ export default async function PeoplePage() {
         </Link>
       </div>
 
-      {(people ?? []).length === 0 ? (
-        <p className="mt-6 text-sm text-sub">
-          Nobody here yet. People you added in onboarding show up here, and you
-          can tell me about more anytime from the Today screen.
-        </p>
-      ) : (
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          {(people ?? []).map((p) => {
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        {/* The user belongs on their own people screen. */}
+        <Link
+          href="/profile"
+          className="rounded-2xl border-[1.5px] border-brand bg-white p-4 shadow-sm"
+        >
+          <div className="mb-2.5 flex h-11 w-11 items-center justify-center rounded-full bg-brand text-lg font-bold text-white">
+            {firstName[0]?.toUpperCase()}
+          </div>
+          <p className="font-semibold">{firstName}</p>
+          <p className="mt-0.5 text-xs text-sub">You · edit your profile</p>
+        </Link>
+        {(people ?? []).map((p) => {
             const gap = daysSince(p.last_contact);
             return (
               <Link
@@ -63,7 +70,12 @@ export default async function PeoplePage() {
               </Link>
             );
           })}
-        </div>
+      </div>
+      {(people ?? []).length === 0 && (
+        <p className="mt-4 text-sm text-sub">
+          Nobody else here yet. People you added in onboarding show up here, and
+          you can tell me about more anytime from the Today screen.
+        </p>
       )}
       <AddPerson />
       <BottomNav />

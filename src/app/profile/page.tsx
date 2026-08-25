@@ -6,6 +6,7 @@ import ProfileForm from "@/components/ProfileForm";
 import CalendarConnect from "@/components/CalendarConnect";
 import ConnectAi from "@/components/ConnectAi";
 import { googleEnabled } from "@/lib/google";
+import { TourReplay } from "@/components/FeatureTour";
 
 export default async function ProfilePage({
   searchParams,
@@ -79,6 +80,7 @@ export default async function ProfilePage({
           }
         }
       />
+      <TourReplay />
       <BottomNav />
     </main>
   );

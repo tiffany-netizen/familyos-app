@@ -26,8 +26,15 @@ type Emergency = { kind: string; name: string; dist: string };
 function ageOf(birthday: string | null): string {
   if (!birthday) return "";
   const b = new Date(birthday + "T00:00:00");
-  const years = Math.floor((Date.now() - b.getTime()) / (365.25 * 86400000));
-  return years > 0 && years < 25 ? ` (${years})` : "";
+  const days = (Date.now() - b.getTime()) / 86400000;
+  if (days < 0) return "";
+  // A sitter needs to know "4 months", not "0". Under a year, use months.
+  if (days < 365) {
+    const months = Math.floor(days / 30.44);
+    return months < 1 ? " (newborn)" : ` (${months} mo)`;
+  }
+  const years = Math.floor(days / 365.25);
+  return years < 25 ? ` (${years})` : "";
 }
 
 function miles(lat1: number, lon1: number, lat2: number, lon2: number) {

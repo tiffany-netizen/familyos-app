@@ -18,6 +18,8 @@ const SYSTEM = `You are FamilyOS, a practical chief of staff. The user wants to 
 
 Cover what applies: babysitter (use the sitter on file by name if there is one), reservation (OpenTable link https://www.opentable.com/s?covers=2&term=<city> using home_address city), timing around kids' routines, transportation, whether a gift or flowers fit (check gift_ideas and favorite_flowers), what their partner is into (use interests and memories, e.g. a wine bar for a wine lover), and anything date-specific from tracked dates. Be concrete: names, times, places. No fluff.
 
+For anything happening in the world (live music, events, showtimes, florists near home), attach a real search link: https://www.google.com/search?q=<url-encoded query like "live music Bend OR Saturday August 29"> or a Google Maps search https://www.google.com/maps/search/<query>. Build queries from home_address city and the actual date.
+
 Return ONLY JSON:
 {
   "considerations": [
