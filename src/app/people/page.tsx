@@ -19,7 +19,15 @@ export default async function PeoplePage() {
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
-      <h1 className="text-2xl font-bold">Your people</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">Your people</h1>
+        <Link
+          href="/gifts"
+          className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
+        >
+          Gift lists ›
+        </Link>
+      </div>
 
       {(people ?? []).length === 0 ? (
         <p className="mt-6 text-sm text-sub">
