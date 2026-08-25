@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import UploadSchedule from "@/components/UploadSchedule";
+import CalendarFold from "@/components/CalendarFold";
 import { getAccessToken, listUpcomingEvents, type CalendarEvent } from "@/lib/google";
 import { holidayFor } from "@/lib/holidays";
 
@@ -15,14 +16,19 @@ export default async function DigestPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: people }, { data: dates }, { data: events }, { data: routines }, { data: profile }] =
+  const [{ data: people }, { data: dates }, { data: events }, { data: routines }, { data: profile }, { data: includes }] =
     await Promise.all([
       supabase.from("people").select("*"),
       supabase.from("tracked_dates").select("*"),
       supabase.from("sports_events").select("*"),
       supabase.from("routines").select("*"),
       supabase.from("profiles").select("time_format").eq("id", user.id).single(),
+      supabase.from("calendar_includes").select("summary").eq("owner_id", user.id),
     ]);
+  // Events the user promoted out of the work/other fold, matched by title.
+  const includedSet = new Set(
+    (includes ?? []).map((i) => String(i.summary).toLowerCase())
+  );
   const hour12 = profile?.time_format !== "24h";
 
   // Google Calendar events, when connected
@@ -60,12 +66,14 @@ export default async function DigestPage() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const week: { day: string; items: string[]; other: string[] }[] = [];
+  type CalLine = { summary: string; line: string };
+  const week: { day: string; items: string[]; pinned: CalLine[]; other: CalLine[] }[] = [];
 
   for (let i = 0; i < 7; i++) {
     const d = new Date(today.getTime() + i * DAY);
     const items: string[] = [];
-    const other: string[] = [];
+    const pinned: CalLine[] = [];
+    const other: CalLine[] = [];
     const mmdd = d.toISOString().slice(5, 10);
 
     // Major holidays, with a heads-up when school is likely out. Weekend
@@ -109,7 +117,9 @@ export default async function DigestPage() {
           : start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12 });
         const line = `${e.summary} · ${time}`;
         if (isFamilyEvent(e.summary)) items.push(`${line} · calendar`);
-        else other.push(line);
+        else if (includedSet.has(e.summary.toLowerCase()))
+          pinned.push({ summary: e.summary, line });
+        else other.push({ summary: e.summary, line });
       }
     });
     (events ?? []).forEach((e) => {
@@ -132,6 +142,7 @@ export default async function DigestPage() {
             ? "Tomorrow"
             : d.toLocaleDateString("en-US", { weekday: "long" }),
       items,
+      pinned,
       other,
     });
   }
@@ -162,7 +173,7 @@ export default async function DigestPage() {
             <p className="text-xs font-bold uppercase tracking-wider text-blue-ink">
               {w.day}
             </p>
-            {w.items.length === 0 && w.other.length === 0 ? (
+            {w.items.length === 0 && w.pinned.length === 0 && w.other.length === 0 ? (
               <p className="mt-1 text-[13px] text-sub">Nothing scheduled.</p>
             ) : (
               w.items.map((it) => (
@@ -171,19 +182,7 @@ export default async function DigestPage() {
                 </p>
               ))
             )}
-            {w.other.length > 0 && (
-              <details className="mt-1">
-                <summary className="cursor-pointer list-none text-[13px] font-semibold text-sub">
-                  + {w.other.length} work / other calendar event
-                  {w.other.length === 1 ? "" : "s"} ›
-                </summary>
-                {w.other.map((it) => (
-                  <p key={it} className="mt-1 text-[13px] text-sub">
-                    {it}
-                  </p>
-                ))}
-              </details>
-            )}
+            <CalendarFold pinned={w.pinned} other={w.other} />
           </div>
         ))}
       </div>
