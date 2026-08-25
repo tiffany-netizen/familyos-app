@@ -4,6 +4,7 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import CallCard from "@/components/CallCard";
 import EditPerson from "@/components/EditPerson";
+import AddGift from "@/components/AddGift";
 import { avatarColor, relationshipLabel } from "@/lib/peopleUi";
 
 export default async function PersonPage({
@@ -16,7 +17,7 @@ export default async function PersonPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: p }, { data: memories }, { data: gifts }, { data: dates }] =
+  const [{ data: p }, { data: memories }, { data: gifts }, { data: dates }, { data: prof }] =
     await Promise.all([
       supabase.from("people").select("*").eq("id", id).single(),
       supabase
@@ -30,6 +31,7 @@ export default async function PersonPage({
         .eq("person_id", id)
         .order("created_at", { ascending: false }),
       supabase.from("tracked_dates").select("*").eq("person_id", id),
+      supabase.from("profiles").select("home_address").eq("id", user.id).single(),
     ]);
 
   if (!p) notFound();
@@ -68,7 +70,7 @@ export default async function PersonPage({
           <h1 className="text-2xl font-bold">{p.name}</h1>
           <p className="text-sm text-sub">{relationshipLabel(p.relationship)}</p>
         </div>
-        <EditPerson person={p} />
+        <EditPerson person={p} homeAddress={prof?.home_address ?? ""} />
       </div>
 
       {showCall && <CallCard personId={p.id} lastContact={p.last_contact} />}
@@ -139,6 +141,7 @@ export default async function PersonPage({
           ))
         )}
       </div>
+      <AddGift people={[{ id: p.id, name: p.name }]} />
       <BottomNav />
     </main>
   );
