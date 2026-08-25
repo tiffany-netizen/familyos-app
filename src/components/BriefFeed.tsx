@@ -25,11 +25,13 @@ export default function BriefFeed({ items }: { items: BriefItem[] }) {
   const visible = items.filter((it) => !it.until || it.until >= now);
   if (visible.length === 0) return null;
 
+  // One ruled sheet, not a stack of floating cards: items sit on hairline
+  // dividers like lines on a printed day sheet.
   return (
-    <>
+    <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white">
       {visible.map((b, i) => (
         <BriefCard key={b.key ?? i} item={b} />
       ))}
-    </>
+    </div>
   );
 }

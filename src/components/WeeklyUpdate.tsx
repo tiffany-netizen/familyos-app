@@ -78,17 +78,71 @@ function recurringCalUrl(
   )}&details=${encodeURIComponent(details)}`;
 }
 
-function CalLink({ href }: { href: string | null }) {
-  if (!href) return null;
+// One tap when the calendar is connected with write access: FamilyOS
+// creates the recurring event itself, reminders included (night before at
+// 8pm + 1 hour ahead). Otherwise it falls back to Google's prefilled
+// editor in a new tab.
+function CalAdd({
+  title,
+  days,
+  time,
+  durationMin,
+}: {
+  title: string;
+  days: number[];
+  time: string;
+  durationMin: number;
+}) {
+  const [state, setState] = useState<"idle" | "busy" | "done" | "fallback">(
+    "idle"
+  );
+  if (days.length === 0) return null;
+  async function add() {
+    setState("busy");
+    try {
+      const res = await fetch("/api/google/event", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title, days, time, durationMin }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.ok) {
+        setState("done");
+        return;
+      }
+    } catch {}
+    setState("fallback");
+    const url = recurringCalUrl(title, days, time, durationMin);
+    if (url) window.open(url, "_blank", "noreferrer");
+  }
+  if (state === "done") {
+    return (
+      <p className="mt-2 text-[13px] font-semibold text-brand">
+        ✓ On your Google Calendar with reminders, night before and 1 hour
+        ahead.
+      </p>
+    );
+  }
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="mt-2 inline-block text-[13px] font-semibold text-blue-ink"
-    >
-      Add to Google Calendar (repeats weekly) ›
-    </a>
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={add}
+        disabled={state === "busy"}
+        className="text-[13px] font-semibold text-blue-ink disabled:opacity-60"
+      >
+        {state === "busy"
+          ? "Adding..."
+          : "Add to Google Calendar (repeats weekly) ›"}
+      </button>
+      {state === "fallback" && (
+        <p className="mt-1 text-xs text-sub">
+          Opened Google&apos;s editor instead. Connect (or reconnect) your
+          calendar in your profile and this becomes one tap with reminders
+          attached.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -306,14 +360,14 @@ export default function WeeklyUpdate({
             School drop-off / pick-up days
           </p>
           <DayChips days={schoolDays} setDays={setSchoolDays} set={WEEKDAYS} />
-          <CalLink href={recurringCalUrl(schoolRunTitle, schoolDays, "08:00", 30)} />
+          <CalAdd title={schoolRunTitle} days={schoolDays} time="08:00" durationMin={30} />
         </div>
       )}
 
       <div>
         <p className="mb-2 text-sm font-semibold">Dinner duty nights</p>
         <DayChips days={dinnerDays} setDays={setDinnerDays} set={WEEKDAYS} />
-        <CalLink href={recurringCalUrl("Dinner duty", dinnerDays, "18:00", 60)} />
+        <CalAdd title="Dinner duty" days={dinnerDays} time="18:00" durationMin={60} />
       </div>
 
       <div>
@@ -364,8 +418,11 @@ export default function WeeklyUpdate({
                 </label>
               </div>
               {a.label.trim() && (
-                <CalLink
-                  href={recurringCalUrl(a.label.trim(), a.days, a.time || "17:00", 60)}
+                <CalAdd
+                  title={a.label.trim()}
+                  days={a.days}
+                  time={a.time || "17:00"}
+                  durationMin={60}
                 />
               )}
             </div>

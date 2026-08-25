@@ -22,6 +22,7 @@ export default function BriefCard({ item }: { item: BriefItem }) {
   const [hidden, setHidden] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [customDate, setCustomDate] = useState("");
+  const [calState, setCalState] = useState<"idle" | "busy" | "done">("idle");
 
   const cardKey = item.key ?? `card:${item.text.slice(0, 40)}`;
   // Daily routine cards: a dismiss clears today only, never weeks ahead.
@@ -140,8 +141,29 @@ export default function BriefCard({ item }: { item: BriefItem }) {
       )}&dates=${item.event_date.replace(/-/g, "")}/${calEnd!.replace(/-/g, "")}`
     : null;
 
+  // With calendar write access, one tap creates the all-day event with a
+  // night-before reminder. Otherwise Google's prefilled editor opens.
+  async function addToCalendar() {
+    if (!item.event_date) return;
+    setCalState("busy");
+    try {
+      const res = await fetch("/api/google/event", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: calTitle, date: item.event_date }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.ok) {
+        setCalState("done");
+        return;
+      }
+    } catch {}
+    setCalState("idle");
+    if (calendarHref) window.open(calendarHref, "_blank", "noreferrer");
+  }
+
   return (
-    <div className="flex gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
+    <div className="flex gap-3 bg-white p-4">
       <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
         <Icon name={briefIcon(item.key, item.role)} />
       </div>
@@ -186,15 +208,19 @@ export default function BriefCard({ item }: { item: BriefItem }) {
                 </button>
               )
             )}
-            {calendarHref && (
-              <a
-                href={calendarHref}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-lg px-2.5 py-2 text-[13px] font-semibold text-blue-ink"
+            {calendarHref && calState !== "done" && (
+              <button
+                disabled={calState === "busy"}
+                onClick={addToCalendar}
+                className="rounded-lg px-2.5 py-2 text-[13px] font-semibold text-blue-ink disabled:opacity-60"
               >
-                Add to calendar
-              </a>
+                {calState === "busy" ? "Adding..." : "Add to calendar"}
+              </button>
+            )}
+            {calState === "done" && (
+              <span className="px-2.5 py-2 text-[13px] font-semibold text-brand">
+                ✓ On your calendar
+              </span>
             )}
             {!hasSnoozeAction && item.key && (
               <button
