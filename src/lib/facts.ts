@@ -38,6 +38,7 @@ export type Facts = {
   shopping_list_open_count: number;
   calendar_connected: boolean;
   calendar_events: CalendarEvent[];
+  pinned_calendar_summaries: string[];
 };
 
 const PERSON_COLS =
@@ -65,6 +66,7 @@ export async function gatherFacts(
     { data: recentBriefs },
     { data: recipes },
     { data: shoppingOpen },
+    { data: calIncludes },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -148,6 +150,10 @@ export async function gatherFacts(
       .select("id")
       .eq("owner_id", userId)
       .eq("done", false),
+    supabase
+      .from("calendar_includes")
+      .select("summary")
+      .eq("owner_id", userId),
   ]);
 
   // All "today" math runs on Eastern time, not server UTC. A brief built
@@ -285,5 +291,6 @@ export async function gatherFacts(
     shopping_list_open_count: (shoppingOpen ?? []).length,
     calendar_connected: calendarConnected,
     calendar_events: calendarEvents,
+    pinned_calendar_summaries: (calIncludes ?? []).map((c) => String(c.summary)),
   };
 }
