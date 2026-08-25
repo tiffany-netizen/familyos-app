@@ -39,7 +39,7 @@ export type Facts = {
 };
 
 const PERSON_COLS =
-  "id,name,nickname,relationship,birthday,grade,school,teacher_name,dismissal_time,best_friend,clothing_size,interests,allergies,pediatrician,favorite_wine,favorite_flowers,works,job,stress_note,school_year_start,last_contact,breed";
+  "id,name,nickname,relationship,birthday,grade,school,school_address,teacher_name,dismissal_time,best_friend,clothing_size,interests,allergies,pediatrician,favorite_wine,favorite_flowers,works,job,stress_note,school_year_start,last_contact,breed";
 
 export async function gatherFacts(
   supabase: SupabaseClient,
@@ -78,7 +78,7 @@ export async function gatherFacts(
       .eq("owner_id", userId),
     supabase
       .from("routines")
-      .select("kind,label,days,day_times,notify")
+      .select("kind,label,days,day_times,notify,end_date")
       .eq("owner_id", userId),
     supabase
       .from("home_items")
@@ -196,7 +196,11 @@ export async function gatherFacts(
     const h12 = h % 12 === 0 ? 12 : h % 12;
     return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
   };
-  const routinesAug = (routines ?? []).map((r) => {
+  const etTodayStr = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, "0")}-${String(et.getDate()).padStart(2, "0")}`;
+  const routinesAug = (routines ?? [])
+    // A routine past its end date (season over) is gone from the brief.
+    .filter((r) => !r.end_date || String(r.end_date) >= etTodayStr)
+    .map((r) => {
     const dayNums = String(r.days ?? "")
       .split(",")
       .map((s) => parseInt(s, 10))

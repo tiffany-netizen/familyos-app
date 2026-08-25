@@ -161,8 +161,10 @@ export type NewEvent = {
   time?: string; // "HH:MM"; omitted = all-day
   durationMin?: number;
   days?: number[]; // 0=Sun..6=Sat; non-empty = weekly recurrence
+  until?: string; // YYYY-MM-DD last day the recurrence runs (season end)
   reminders?: number[]; // minutes before start, popup
   description?: string;
+  location?: string;
 };
 
 // Creates an event on the user's primary calendar, with reminders attached.
@@ -175,6 +177,7 @@ export async function createCalendarEvent(
     summary: ev.title,
     description: ev.description || "Added by FamilyOS",
   };
+  if (ev.location) body.location = ev.location.slice(0, 300);
   if (ev.time) {
     const startIso = `${ev.date}T${ev.time}:00`;
     const [h, m] = ev.time.split(":").map((x) => parseInt(x, 10));
@@ -200,8 +203,12 @@ export async function createCalendarEvent(
     body.end = { date: next };
   }
   if (ev.days && ev.days.length) {
+    const until =
+      ev.until && /^\d{4}-\d{2}-\d{2}$/.test(ev.until)
+        ? `;UNTIL=${ev.until.replace(/-/g, "")}T235959Z`
+        : "";
     body.recurrence = [
-      `RRULE:FREQ=WEEKLY;BYDAY=${[...ev.days].sort().map((n) => BYDAY[n]).join(",")}`,
+      `RRULE:FREQ=WEEKLY;BYDAY=${[...ev.days].sort().map((n) => BYDAY[n]).join(",")}${until}`,
     ];
   }
   if (ev.reminders && ev.reminders.length) {
