@@ -23,7 +23,7 @@ export default async function ProfilePage({
     supabase
       .from("profiles")
       .select(
-        "full_name,birthday,home_address,phone,date_night_frequency_days,sweet_text_optin,brief_email,wants_gift_lists,meal_notes,owns_home,brief_time,grocery_store,time_format"
+        "full_name,birthday,home_address,phone,brief_notes,date_night_frequency_days,sweet_text_optin,brief_email,wants_gift_lists,meal_notes,owns_home,brief_time,grocery_store,time_format"
       )
       .eq("id", user.id)
       .single(),
@@ -66,6 +66,7 @@ export default async function ProfilePage({
             birthday: null,
             home_address: null,
             phone: null,
+            brief_notes: null,
             date_night_frequency_days: 14,
             sweet_text_optin: false,
             brief_email: true,
