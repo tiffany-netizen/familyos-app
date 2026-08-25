@@ -39,7 +39,7 @@ export type Facts = {
 };
 
 const PERSON_COLS =
-  "id,name,nickname,relationship,birthday,grade,school,school_address,teacher_name,dismissal_time,best_friend,clothing_size,interests,allergies,pediatrician,favorite_wine,favorite_flowers,works,job,stress_note,school_year_start,last_contact,breed";
+  "id,name,nickname,relationship,birthday,phone,grade,school,school_address,teacher_name,dismissal_time,best_friend,clothing_size,interests,allergies,pediatrician,favorite_wine,favorite_flowers,works,job,stress_note,school_year_start,last_contact,breed";
 
 export async function gatherFacts(
   supabase: SupabaseClient,
