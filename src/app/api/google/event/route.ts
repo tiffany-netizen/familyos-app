@@ -26,6 +26,9 @@ export async function POST(request: Request) {
     time?: string;
     date?: string;
     durationMin?: number;
+    until?: string;
+    location?: string;
+    description?: string;
   } = {};
   try {
     body = await request.json();
@@ -82,8 +85,19 @@ export async function POST(request: Request) {
     time,
     durationMin: body.durationMin,
     days: days.length ? days : undefined,
+    until:
+      typeof body.until === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.until)
+        ? body.until
+        : undefined,
     reminders,
-    description: "Added by FamilyOS. Reminders: night before and 1 hour ahead.",
+    location:
+      typeof body.location === "string" && body.location.trim()
+        ? body.location.trim().slice(0, 300)
+        : undefined,
+    description:
+      typeof body.description === "string" && body.description.trim()
+        ? body.description.trim().slice(0, 1000)
+        : "Added by FamilyOS. Reminders: night before and 1 hour ahead.",
   });
 
   if (!result.ok) return Response.json({ error: result.error });
