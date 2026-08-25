@@ -72,9 +72,12 @@ export default function BriefCard({ item }: { item: BriefItem }) {
       return;
     }
     if (a.kind === "dismiss") {
-      await setCardState("dismissed", daysFromNow(isDailyRoutine ? 1 : 45));
+      // Calendar-derived cards share a key across occurrences (recurring
+      // syncs), so their dismissal clears today only, like daily routines.
+      const oneDay = isDailyRoutine || (item.key ?? "").startsWith("cal:");
+      await setCardState("dismissed", daysFromNow(oneDay ? 1 : 45));
       setNote(
-        isDailyRoutine
+        oneDay
           ? "Cleared for today. Back on its next day."
           : "Marked under control. I'll stay out of it."
       );
@@ -106,6 +109,7 @@ export default function BriefCard({ item }: { item: BriefItem }) {
   if (hidden) return null;
 
   const hasSnoozeAction = (item.actions ?? []).some((a) => a.kind === "snooze");
+  const hasDismissAction = (item.actions ?? []).some((a) => a.kind === "dismiss");
 
   // Snoozes never reach past the event itself.
   const dayBeforeEvent = item.event_date
@@ -230,6 +234,16 @@ export default function BriefCard({ item }: { item: BriefItem }) {
                 className="rounded-lg px-2.5 py-2 text-[13px] font-semibold text-sub disabled:opacity-50"
               >
                 Snooze
+              </button>
+            )}
+            {!hasDismissAction && item.key && (
+              <button
+                disabled={busy}
+                onClick={() => act({ label: "Dismiss", kind: "dismiss" })}
+                aria-label="Dismiss this card"
+                className="rounded-lg px-2.5 py-2 text-[13px] font-semibold text-sub disabled:opacity-50"
+              >
+                Dismiss
               </button>
             )}
           </div>
