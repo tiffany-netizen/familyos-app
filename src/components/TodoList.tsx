@@ -9,6 +9,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+type ActionPayload = {
+  name?: string | null;
+  phone?: string | null;
+  body?: string | null;
+  title?: string | null;
+  date?: string | null;
+  time?: string | null;
+  duration_min?: number | null;
+  query?: string | null;
+  label?: string | null;
+  path?: string | null;
+};
+
 type Todo = {
   id: string;
   title: string;
@@ -18,8 +31,73 @@ type Todo = {
   next_step: string | null;
   snoozed_until: string | null;
   person_id: string | null;
+  action_kind: string | null;
+  action_payload: ActionPayload | null;
   created_at: string;
 };
+
+// Each to-do can carry one executable action: text someone, block the
+// calendar, find a table, search nearby, or jump to the right screen.
+function actionFor(t: Todo): { href: string; label: string; external: boolean } | null {
+  const p = t.action_payload ?? {};
+  const enc = encodeURIComponent;
+  switch (t.action_kind) {
+    case "sms": {
+      const body = p.body ? `?&body=${enc(p.body)}` : "";
+      return {
+        href: `sms:${p.phone ?? ""}${body}`,
+        label: p.name ? `Text ${p.name}` : "Draft the text",
+        external: false,
+      };
+    }
+    case "calendar": {
+      if (!p.date) return null;
+      const d = p.date.replace(/-/g, "");
+      const pad = (n: number) => String(n).padStart(2, "0");
+      let dates = `${d}/${d}`;
+      if (p.time && /^\d{1,2}:\d{2}$/.test(p.time)) {
+        const [h, m] = p.time.split(":").map(Number);
+        const endMin = h * 60 + m + (p.duration_min ?? 60);
+        dates = `${d}T${pad(h)}${pad(m)}00/${d}T${pad(Math.floor(endMin / 60) % 24)}${pad(endMin % 60)}00`;
+      }
+      return {
+        href: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${enc(p.title ?? t.title)}&dates=${dates}`,
+        label: "Add to calendar",
+        external: true,
+      };
+    }
+    case "reserve":
+      return p.query
+        ? {
+            href: `https://www.opentable.com/s?covers=2&term=${enc(p.query)}`,
+            label: p.label ?? "Find a table",
+            external: true,
+          }
+        : null;
+    case "maps":
+      return p.query
+        ? {
+            href: `https://www.google.com/maps/search/${enc(p.query)}`,
+            label: p.label ?? "Find nearby",
+            external: true,
+          }
+        : null;
+    case "search":
+      return p.query
+        ? {
+            href: `https://www.google.com/search?q=${enc(p.query)}`,
+            label: p.label ?? "Search it",
+            external: true,
+          }
+        : null;
+    case "link":
+      return p.path
+        ? { href: p.path, label: p.label ?? "Open", external: false }
+        : null;
+    default:
+      return null;
+  }
+}
 
 const CATEGORY_LABEL: Record<string, string> = {
   call: "Call",
@@ -242,6 +320,18 @@ export default function TodoList({
                 First move: {t.next_step}
               </p>
             )}
+            {(() => {
+              const a = actionFor(t);
+              return a ? (
+                <a
+                  href={a.href}
+                  {...(a.external ? { target: "_blank", rel: "noreferrer" } : {})}
+                  className="inline-block rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-white"
+                >
+                  {a.label} ›
+                </a>
+              ) : null;
+            })()}
             <div className="flex flex-wrap items-center gap-2">
               <label className="text-[11px] font-semibold text-sub">Due</label>
               <input
