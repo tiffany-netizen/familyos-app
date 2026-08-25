@@ -21,6 +21,7 @@ export default function BriefCard({ item }: { item: BriefItem }) {
   const [busy, setBusy] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [customDate, setCustomDate] = useState("");
   const [calState, setCalState] = useState<"idle" | "busy" | "done">("idle");
 
@@ -81,6 +82,7 @@ export default function BriefCard({ item }: { item: BriefItem }) {
           ? "Cleared for today. Back on its next day."
           : "Marked under control. I'll stay out of it."
       );
+      setOpen(true);
       setTimeout(() => setHidden(true), 1600);
       return;
     }
@@ -166,14 +168,51 @@ export default function BriefCard({ item }: { item: BriefItem }) {
     if (calendarHref) window.open(calendarHref, "_blank", "noreferrer");
   }
 
+  // Collapsed cards show a short headline; the sentence lives behind a tap.
+  const headline =
+    item.headline ??
+    item.event_title ??
+    (item.text.split(/[.?!]/)[0] || item.text)
+      .split(" ")
+      .slice(0, 6)
+      .join(" ")
+      .slice(0, 46);
+
   return (
-    <div className="flex gap-3 border-l-[3px] border-l-brand bg-white p-4">
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
-        <Icon name={briefIcon(item.key, item.role)} />
+    <div className="border-l-[3px] border-l-brand bg-white">
+      <div className="flex items-center gap-3 p-4">
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-line bg-background text-brand">
+            <Icon name={briefIcon(item.key, item.role)} size={17} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="brief-h truncate text-[16px]">{headline}</p>
+            <p className="mt-0.5 truncate font-mono text-[10px] tracking-wider text-sub">
+              {item.meta}
+            </p>
+          </div>
+          <span className="flex-shrink-0 font-mono text-base text-sub" aria-hidden>
+            {open ? "−" : "+"}
+          </span>
+        </button>
+        {item.key && !note && !hasDismissAction && (
+          <button
+            disabled={busy}
+            onClick={() => act({ label: "Dismiss", kind: "dismiss" })}
+            aria-label="Dismiss this card"
+            className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center text-[14px] leading-none text-sub/50 disabled:opacity-40"
+          >
+            ✕
+          </button>
+        )}
       </div>
-      <div className="flex-1">
-        <p className="text-[15px] leading-snug">{item.text}</p>
-        <p className="mt-1 text-xs text-sub">{item.meta}</p>
+
+      {(open || note) && (
+      <div className="-mt-2 px-4 pb-4 pl-[64px]">
+        <p className="text-[14px] leading-relaxed">{item.text}</p>
         {note ? (
           <p className="mt-2.5 text-[13px] font-semibold text-brand">✓ {note}</p>
         ) : (
@@ -239,16 +278,6 @@ export default function BriefCard({ item }: { item: BriefItem }) {
           </div>
         )}
       </div>
-
-      {item.key && !note && !hasDismissAction && (
-        <button
-          disabled={busy}
-          onClick={() => act({ label: "Dismiss", kind: "dismiss" })}
-          aria-label="Dismiss this card"
-          className="-mr-1 -mt-1 flex h-7 w-7 flex-shrink-0 items-start justify-center self-start pt-0.5 text-[15px] leading-none text-sub/50 disabled:opacity-40"
-        >
-          ✕
-        </button>
       )}
 
       {pickerOpen && (
