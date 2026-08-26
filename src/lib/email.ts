@@ -4,7 +4,13 @@
 
 import type { BriefItem } from "@/lib/brief";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://familyos-lac.vercel.app";
+// Emails must link back to the environment that sent them: staging
+// emails to the staging site, production emails to the live site.
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_ENV === "preview"
+    ? "https://familyos-git-dev-guild-talent.vercel.app"
+    : "https://familyos-lac.vercel.app");
 
 export function renderBriefEmail(
   firstName: string,
