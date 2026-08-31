@@ -1,94 +1,98 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import BottomNav from "@/components/BottomNav";
+import ProfileForm from "@/components/ProfileForm";
+import CalendarConnect from "@/components/CalendarConnect";
+import ConnectAi from "@/components/ConnectAi";
+import { googleEnabled } from "@/lib/google";
+import { TourReplay } from "@/components/FeatureTour";
 
-// Connect / disconnect Google Calendar from the profile page. Two of these
-// render side by side, one per slot ("personal" / "work"), since a user can
-// now connect two separate Google accounts.
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-
-export default function CalendarConnect({
-  slot,
-  label,
-  connectedEmail,
-  available,
-  status,
+export default async function ProfilePage({
+  searchParams,
 }: {
-  slot: "personal" | "work";
-  label: string;
-  connectedEmail: string | null;
-  available: boolean;
-  status?: string;
+  searchParams: Promise<{ calendar?: string; slot?: string }>;
 }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const { calendar, slot } = await searchParams;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  async function disconnect() {
-    setBusy(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      await supabase
-        .from("google_tokens")
-        .delete()
-        .eq("owner_id", user.id)
-        .eq("slot", slot);
-    }
-    setBusy(false);
-    router.refresh();
-  }
+  const [{ data: profile }, { data: gTokens }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(
+        "full_name,birthday,home_address,phone,brief_notes,date_night_frequency_days,sweet_text_optin,brief_email,wants_gift_lists,meal_notes,owns_home,brief_time,grocery_store,time_format"
+      )
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("google_tokens")
+      .select("slot,email")
+      .eq("owner_id", user.id),
+  ]);
+
+  const personalToken = (gTokens ?? []).find((t) => t.slot === "personal");
+  const workToken = (gTokens ?? []).find((t) => t.slot === "work");
 
   return (
-    <div className="rounded-2xl border border-line bg-white p-4">
-      <p className="text-sm font-bold">{label}</p>
-      {status === "connected" && (
-        <p className="mt-1 text-[13px] font-medium text-brand">
-          ✓ Connected. Your real schedule now feeds the brief and the weekly
-          digest.
-        </p>
-      )}
-      {status === "error" && (
-        <p className="mt-1 text-[13px] font-medium text-red-600">
-          That connection attempt didn&apos;t finish. Try again.
-        </p>
-      )}
-      {connectedEmail ? (
-        <>
-          <p className="mt-1 text-[13px] text-sub">
-            Reading {connectedEmail}&apos;s primary calendar. Events show in the
-            brief and digest; nothing is ever written to your calendar.
-          </p>
-          <button
-            onClick={disconnect}
-            disabled={busy}
-            className="mt-2.5 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-sub disabled:opacity-50"
-          >
-            {busy ? "Disconnecting..." : "Disconnect"}
-          </button>
-        </>
-      ) : available ? (
-        <>
-          <p className="mt-1 text-[13px] text-sub">
-            {slot === "personal"
-              ? "Connect your calendar so the brief can check the real schedule and date night can find free evenings. Read-only."
-              : "Connect a second calendar (e.g. your work Google account) so FamilyOS can tell work events apart from personal ones."}
-          </p>
-          <a
-            href={`/api/google/auth?slot=${slot}`}
-            className="mt-2.5 inline-block rounded-lg bg-brand px-3.5 py-2 text-[13px] font-semibold text-white"
-          >
-            Connect {label}
-          </a>
-        </>
-      ) : (
-        <p className="mt-1 text-[13px] text-sub">
-          Coming online soon. The connection needs its Google credentials set
-          up first.
-        </p>
-      )}
-    </div>
+    <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
+      <div className="mb-1 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Your profile</h1>
+        <Link
+          href="/today"
+          className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-sub"
+        >
+          ‹ Today
+        </Link>
+      </div>
+      <p className="mb-6 text-sm text-sub">
+        As FamilyOS learns to track new things, the new fields show up here, so
+        you never have to redo setup.
+      </p>
+      <div className="mb-3 space-y-3">
+        <CalendarConnect
+          slot="personal"
+          label="Personal calendar"
+          connectedEmail={personalToken?.email ?? (personalToken ? "your Google account" : null)}
+          available={googleEnabled()}
+          status={slot === "personal" ? calendar : undefined}
+        />
+        <CalendarConnect
+          slot="work"
+          label="Work calendar"
+          connectedEmail={workToken?.email ?? (workToken ? "your Google account" : null)}
+          available={googleEnabled()}
+          status={slot === "work" ? calendar : undefined}
+        />
+      </div>
+      <div className="mb-6">
+        <ConnectAi />
+      </div>
+      <ProfileForm
+        initial={
+          profile ?? {
+            full_name: null,
+            birthday: null,
+            home_address: null,
+            phone: null,
+            brief_notes: null,
+            date_night_frequency_days: 14,
+            sweet_text_optin: false,
+            brief_email: true,
+            wants_gift_lists: true,
+            meal_notes: null,
+            owns_home: null,
+            brief_time: "07:00",
+            grocery_store: null,
+            time_format: "12h",
+          }
+        }
+      />
+      <TourReplay />
+      <BottomNav />
+    </main>
   );
 }
