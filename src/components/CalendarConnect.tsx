@@ -1,16 +1,22 @@
 "use client";
 
-// Connect / disconnect Google Calendar from the profile page.
+// Connect / disconnect Google Calendar from the profile page. Two of these
+// render side by side, one per slot ("personal" / "work"), since a user can
+// now connect two separate Google accounts.
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function CalendarConnect({
+  slot,
+  label,
   connectedEmail,
   available,
   status,
 }: {
+  slot: "personal" | "work";
+  label: string;
   connectedEmail: string | null;
   available: boolean;
   status?: string;
@@ -25,7 +31,11 @@ export default function CalendarConnect({
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from("google_tokens").delete().eq("owner_id", user.id);
+      await supabase
+        .from("google_tokens")
+        .delete()
+        .eq("owner_id", user.id)
+        .eq("slot", slot);
     }
     setBusy(false);
     router.refresh();
@@ -33,7 +43,7 @@ export default function CalendarConnect({
 
   return (
     <div className="rounded-2xl border border-line bg-white p-4">
-      <p className="text-sm font-bold">Google Calendar</p>
+      <p className="text-sm font-bold">{label}</p>
       {status === "connected" && (
         <p className="mt-1 text-[13px] font-medium text-brand">
           ✓ Connected. Your real schedule now feeds the brief and the weekly
@@ -62,14 +72,15 @@ export default function CalendarConnect({
       ) : available ? (
         <>
           <p className="mt-1 text-[13px] text-sub">
-            Connect your calendar so the brief can check the real schedule and
-            date night can find free evenings. Read-only.
+            {slot === "personal"
+              ? "Connect your calendar so the brief can check the real schedule and date night can find free evenings. Read-only."
+              : "Connect a second calendar (e.g. your work Google account) so FamilyOS can tell work events apart from personal ones."}
           </p>
           <a
-            href="/api/google/auth"
+            href={`/api/google/auth?slot=${slot}`}
             className="mt-2.5 inline-block rounded-lg bg-brand px-3.5 py-2 text-[13px] font-semibold text-white"
           >
-            Connect Google Calendar
+            Connect {label}
           </a>
         </>
       ) : (

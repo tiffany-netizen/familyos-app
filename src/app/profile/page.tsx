@@ -11,16 +11,16 @@ import { TourReplay } from "@/components/FeatureTour";
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ calendar?: string }>;
+  searchParams: Promise<{ calendar?: string; slot?: string }>;
 }) {
-  const { calendar } = await searchParams;
+  const { calendar, slot } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: profile }, { data: gToken }] = await Promise.all([
+  const [{ data: profile }, { data: gTokens }] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -30,10 +30,12 @@ export default async function ProfilePage({
       .single(),
     supabase
       .from("google_tokens")
-      .select("email")
-      .eq("owner_id", user.id)
-      .maybeSingle(),
+      .select("slot,email")
+      .eq("owner_id", user.id),
   ]);
+
+  const personalToken = (gTokens ?? []).find((t) => t.slot === "personal");
+  const workToken = (gTokens ?? []).find((t) => t.slot === "work");
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
@@ -50,11 +52,20 @@ export default async function ProfilePage({
         As FamilyOS learns to track new things, the new fields show up here, so
         you never have to redo setup.
       </p>
-      <div className="mb-6">
+      <div className="mb-3 space-y-3">
         <CalendarConnect
-          connectedEmail={gToken?.email ?? (gToken ? "your Google account" : null)}
+          slot="personal"
+          label="Personal calendar"
+          connectedEmail={personalToken?.email ?? (personalToken ? "your Google account" : null)}
           available={googleEnabled()}
-          status={calendar}
+          status={slot === "personal" ? calendar : undefined}
+        />
+        <CalendarConnect
+          slot="work"
+          label="Work calendar"
+          connectedEmail={workToken?.email ?? (workToken ? "your Google account" : null)}
+          available={googleEnabled()}
+          status={slot === "work" ? calendar : undefined}
         />
       </div>
       <div className="mb-6">
